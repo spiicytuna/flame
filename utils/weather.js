@@ -29,10 +29,17 @@ async function getWeather(lat, lon) {
   }
 
   return {
-    temp: Math.round(data.current.temp_c),
-    condition: data.current.condition.text,
-    location: data.location.name,
+    id: 1,
+    externalLastUpdate: data.current.last_updated,
+    tempC: data.current.temp_c,
+    tempF: data.current.temp_f,
+    isDay: data.current.is_day === 1,
+    cloud: data.current.cloud,
+    conditionText: data.current.condition.text,
+    conditionCode: data.current.condition.code,
     humidity: data.current.humidity,
+    windK: data.current.wind_kph,
+    windM: data.current.wind_mph
   };
 }
 
