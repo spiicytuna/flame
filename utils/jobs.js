@@ -1,9 +1,9 @@
 const schedule = require('node-schedule');
-
-console.log('[INFO] Weather DB update disabled. IP-based weather active.');
+const interval = process.env.WEATHER_UPDATE_INTERVAL || '0 0 */3 * * *';
 
 module.exports = async function () {
-  schedule.scheduleJob('infoWeatherStub', '0 5 */4 * * *', () => {
-    console.log('[INFO] No longer recording weather to SQLite. See /app/controllers/weather/getWather.js');
+  schedule.scheduleJob('updateWeather', interval, () => {
+    console.log(`[INFO] Weather refresh triggered by schedule: ${interval}`);
+    // Put optional refresh logic here if needed
   });
 };
