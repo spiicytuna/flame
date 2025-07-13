@@ -1,5 +1,11 @@
 const fetch = require('node-fetch');
-const API_KEY = process.env.WEATHER_API_KEY || '';
+// const API_KEY = process.env.WEATHER_API_KEY || ''; // swap with below if you want to pull the weather API key from the docker-compose
+const loadConfig = require('../utils/loadConfig');
+const config = loadConfig();
+
+const API_KEY = config.WEATHER_API_KEY || process.env.WEATHER_API_KEY || '';
+if (!API_KEY) throw new Error('Missing WEATHER_API_KEY in config.json > add in Dashboard settings');
+
 const API_URL = 'https://api.weatherapi.com/v1/current.json';
 
 async function getWeather(lat, lon) {
