@@ -1,41 +1,12 @@
-const fetch = require('node-fetch');
 const { getGeoFromIP } = require('../../utils/geoIP');
-const loadConfig = require('../../utils/loadConfig');
-
-async function getWeatherFromAPI(lat, lon) {
-//  const API_KEY = process.env.WEATHER_API_KEY; // swap below if you want to pull weather API key from docker-compose
-  const config = await loadConfig(); // 🔄 FIXED: Await the config
-  const API_KEY = config.WEATHER_API_KEY || process.env.WEATHER_API_KEY;
-  if (!API_KEY) throw new Error('Missing WEATHER_API_KEY');
-
-  const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${lat},${lon}`;
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (!res.ok || !data.current) throw new Error('Weather API failed');
-
-  const current = data.current;
-
-  return {
-    id: 1, // dummy ID
-    externalLastUpdate: current.last_updated,
-    tempC: current.temp_c,
-    tempF: current.temp_f,
-    isDay: current.is_day === 1,
-    cloud: current.cloud,
-    conditionText: current.condition.text,
-    conditionCode: current.condition.code,
-    humidity: current.humidity,
-    windK: current.wind_kph,
-    windM: current.wind_mph
-  };
-}
+const { getWeather } = require('../../utils/weather');
 
 module.exports = async (req, res) => {
   try {
     const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim();
-    const { lat, lon } = await getGeoFromIP(ip); // <- FIXED NAME
-    const weather = await getWeatherFromAPI(lat, lon);
+    const { lat, lon } = await getGeoFromIP(ip);
+
+    const weather = await getWeather(lat, lon); // ✅ Fixed function name
 
     res.status(200).json({ success: true, data: [weather] });
   } catch (err) {
