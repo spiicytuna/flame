@@ -1,39 +1,9 @@
 const schedule = require('node-schedule');
-const getExternalWeather = require('./getExternalWeather');
-const clearWeatherData = require('./clearWeatherData');
-const Sockets = require('../Sockets');
-const Logger = require('./Logger');
-const loadConfig = require('./loadConfig');
-const logger = new Logger();
+
+console.log('[INFO] Weather DB update disabled. IP-based weather active.');
 
 module.exports = async function () {
-  const { WEATHER_API_KEY } = await loadConfig();
-
-  if (WEATHER_API_KEY != '') {
-    // Update weather data every 15 minutes
-    const weatherJob = schedule.scheduleJob(
-      'updateWeather',
-      '0 */15 * * * *',
-      async () => {
-        try {
-          const weatherData = await getExternalWeather();
-
-          Sockets.getSocket('weather').socket.send(JSON.stringify(weatherData));
-        } catch (err) {
-          if (WEATHER_API_KEY) {
-            logger.log(err.message, 'ERROR');
-          }
-        }
-      }
-    );
-
-    // Clear old weather data every 4 hours
-    const weatherCleanerJob = schedule.scheduleJob(
-      'clearWeather',
-      '0 5 */4 * * *',
-      async () => {
-        clearWeatherData();
-      }
-    );
-  }
+  schedule.scheduleJob('infoWeatherStub', '0 5 */4 * * *', () => {
+    console.log('[INFO] No longer recording weather to SQLite. See /app/controllers/weather/getWather.js');
+  });
 };
