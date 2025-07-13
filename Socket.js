@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 const Logger = require('./utils/Logger');
-const { getIPLocation } = require('./utils/geoIP');
+const { getGeoFromIP } = require('./utils/geoIP');
 const { getWeather } = require('./utils/weather');
 
 const logger = new Logger();
@@ -42,7 +42,7 @@ class Socket {
       logger.log(`Socket: new connection from ${ip}`);
 
       try {
-        const loc = await getIPLocation(ip);
+        const loc = await getGeoFromIP(ip); 
         const lat = loc?.lat || 0;
         const lon = loc?.lon || 0;
 
