@@ -16,6 +16,10 @@ const initApp = require('./utils/init');
 const Logger = require('./utils/Logger');
 const logger = new Logger();
 
+// NEW: Weather route (ensure controller/routes are in place)
+const express = require('express');
+const weatherRoutes = require('./routes/weather');
+
 (async () => {
   const PORT = process.env.PORT || 5005;
 
@@ -25,11 +29,14 @@ const logger = new Logger();
   await associateModels();
   await jobs();
 
-  // Create server for Express API and WebSockets
+  // Add /api/weather to the existing API (since api.js uses express)
+  api.use('/api/weather', weatherRoutes);
+
+  // Create HTTP server
   const server = http.createServer();
   server.on('request', api);
 
-  // Register weatherSocket
+  // Create and register WebSocket
   const weatherSocket = new Socket(server);
   Sockets.registerSocket('weather', weatherSocket);
 
