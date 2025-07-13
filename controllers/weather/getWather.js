@@ -1,8 +1,11 @@
 const fetch = require('node-fetch');
-const { getGeoFromIP } = require('../../utils/geoIP'); // <- FIXED NAME
+const { getGeoFromIP } = require('../../utils/geoIP');
+const loadConfig = require('../../utils/loadConfig');
 
 async function getWeatherFromAPI(lat, lon) {
-  const API_KEY = process.env.WEATHER_API_KEY;
+//  const API_KEY = process.env.WEATHER_API_KEY; // swap below if you want to pull weather API key from docker-compose
+  const config = await loadConfig(); // 🔄 FIXED: Await the config
+  const API_KEY = config.WEATHER_API_KEY || process.env.WEATHER_API_KEY;
   if (!API_KEY) throw new Error('Missing WEATHER_API_KEY');
 
   const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${lat},${lon}`;
