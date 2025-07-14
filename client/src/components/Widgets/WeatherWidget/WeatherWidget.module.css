@@ -50,3 +50,17 @@
   margin-right: 0px;
   margin-top: -5px;
 }
+
+.WeatherDetailsAddl {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--color-primary);
+  margin-left: 10px;
+  font-weight: 400;
+}
+
+.WeatherDetailsAddl span {
+  padding-top: 2px;
+}
