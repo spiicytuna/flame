@@ -1,5 +1,7 @@
 .WeatherWidget {
   display: flex;
+  flex-direction: column; /* Stack children vertically so location shows at bottom */
+  align-items: center;
   visibility: hidden;
 }
 
