@@ -31,6 +31,7 @@ export const configTemplate: Config = {
   showTime: false,
   defaultTheme: 'tron',
   isKilometer: true,
-  weatherData: 'cloud',
+  weatherData: 'humidity',
   hideDate: false,
+  weatherMode: 'geoip',
 };
