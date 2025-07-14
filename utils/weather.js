@@ -40,7 +40,14 @@ async function getWeather(lat, lon) {
     humidity: data.current.humidity,
     windK: data.current.wind_kph,
     windM: data.current.wind_mph,
-    location: data.location.name
+    location: data.location.name,
+    precip_mm: data.current.precip_mm,
+    precip_in: data.current.precip_in,
+    vis_km: data.current.vis_km,
+    vis_miles: data.current.vis_miles,
+    uv: data.current.uv,
+    gust_kph: data.current.gust_kph,
+    gust_mph: data.current.gust_mph
   };
 }
 
