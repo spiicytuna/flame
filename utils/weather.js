@@ -39,7 +39,8 @@ async function getWeather(lat, lon) {
     conditionCode: data.current.condition.code,
     humidity: data.current.humidity,
     windK: data.current.wind_kph,
-    windM: data.current.wind_mph
+    windM: data.current.wind_mph,
+    location: data.location.name
   };
 }
 
