@@ -6,6 +6,7 @@ export interface WeatherForm {
   long: number;
   isCelsius: boolean;
   weatherData: WeatherData;
+  weatherMode: 'geoip' | 'fixed';
 }
 
 export interface GeneralForm {
