@@ -6,17 +6,23 @@ const { getWeather } = require('./utils/weather');
 const logger = new Logger();
 
 const weatherCache = {}; // { "lat,lon": { data, timestamp } }
-const WEATHER_TTL = 3 * 60 * 60 * 1000; // 3 hours in ms
+
+const WEATHER_TTL = (() => {  // set env var in docker-compose WEATHER_TTL_HOURS=1 // defaults to 3 hours
+  const hours = parseInt(process.env.WEATHER_TTL_HOURS || '3');
+  return hours * 60 * 60 * 1000;
+})();
 
 async function getWeatherCached(lat, lon) {
   const key = `${lat},${lon}`;
   const now = Date.now();
 
   if (weatherCache[key] && (now - weatherCache[key].timestamp) < WEATHER_TTL) {
+    logger.log(`[Weather] Serving from cache for key ${key}`);
     return weatherCache[key].data;
   }
 
   try {
+    logger.log(`[Weather] Fetching fresh data from WeatherAPI for key ${key}`);
     const data = await getWeather(lat, lon);
     weatherCache[key] = {
       data,
@@ -28,6 +34,7 @@ async function getWeatherCached(lat, lon) {
     return null;
   }
 }
+
 
 class Socket {
   constructor(server) {
