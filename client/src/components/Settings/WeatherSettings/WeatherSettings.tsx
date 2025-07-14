@@ -33,8 +33,15 @@ export const WeatherSettings = (): JSX.Element => {
   // Get config
   useEffect(() => {
     setFormData({
-      ...config,
+      WEATHER_API_KEY: config.WEATHER_API_KEY,
+      lat: config.lat,
+      long: config.long,
+      isCelsius: config.isCelsius,
+      weatherData: config.weatherData,
       weatherMode: config.weatherMode || 'geoip',
+      showExtraWeatherColumn: config.showExtraWeatherColumn || false,
+      extraWeatherTop: config.extraWeatherTop || 'uv',
+      extraWeatherBottom: config.extraWeatherBottom || 'gust_mph',
     });
   }, [loading]);
 
