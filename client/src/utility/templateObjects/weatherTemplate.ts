@@ -14,4 +14,5 @@ export const weatherTemplate: Weather = {
   humidity: 0,
   windK: 0,
   windM: 0,
+  location: ''
 };
