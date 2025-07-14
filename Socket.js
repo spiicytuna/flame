@@ -74,7 +74,8 @@ class Socket {
         const weather = await getWeatherCached(lat, lon);
         if (weather) {
           client.send(JSON.stringify(weather));
-          logger.log(`[Weather] WebSocket sent: ${weather.tempC || weather.temp}°C ${weather.conditionText || weather.condition} in ${weather.location || weather.name}`);
+	  const modeLabel = config.weatherMode === 'fixed' ? 'Fixed lat/lon' : 'GeoIP';
+          logger.log(`[Weather] WebSocket sent: ${weather.tempC || weather.temp}°C ${weather.conditionText || weather.condition} in ${weather.location || weather.name} (${modeLabel})`);
         } else {
           logger.log('[Weather] No weather data available for client');
         }
@@ -94,4 +95,3 @@ class Socket {
 }
 
 module.exports = Socket;
-
