@@ -11,4 +11,5 @@ export interface Weather extends Model {
   humidity: number;
   windK: number;
   windM: number;
+  location: string;
 }
