@@ -37,8 +37,15 @@
 }
 
 .WeatherLocation {
-  margin-top: 4px;
+  margin-top: -6px;
   font-size: 0.75rem;
   color: var(--color-accent);
   text-align: center;
+}
+
+.WeatherIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 10px;
 }
