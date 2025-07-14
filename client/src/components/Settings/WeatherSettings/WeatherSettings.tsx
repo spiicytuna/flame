@@ -199,6 +199,58 @@ export const WeatherSettings = (): JSX.Element => {
         </select>
       </InputGroup>
 
+
+      <SettingsHeadline text="Extra Data" />
+	<InputGroup>
+	  <label htmlFor="showExtraWeatherColumn">Show third weather column?</label>
+	  <select
+	    id="showExtraWeatherColumn"
+	    name="showExtraWeatherColumn"
+	    onChange={(e) => inputChangeHandler(e, { isBool: true })}
+	    value={formData.showExtraWeatherColumn ? 1 : 0}
+	  >
+	    <option value={1}>Yes</option>
+	    <option value={0}>No</option>
+	  </select>
+	</InputGroup>
+
+	<InputGroup>
+	  <label htmlFor="extraWeatherTop">Top data</label>
+	  <select
+	    id="extraWeatherTop"
+	    name="extraWeatherTop"
+	    value={formData.extraWeatherTop}
+	    onChange={(e) => inputChangeHandler(e)}
+	  >
+	    <option value="precip_mm">Precipitation (mm)</option>
+	    <option value="precip_in">Precipitation (in)</option>
+	    <option value="vis_km">Visibility (km)</option>
+	    <option value="vis_miles">Visibility (miles)</option>
+	    <option value="uv">UV Index</option>
+	    <option value="gust_kph">Wind (kph)</option>
+	    <option value="gust_mph">Wind (mph)</option>
+	  </select>
+	</InputGroup>
+
+	<InputGroup>
+	  <label htmlFor="extraWeatherBottom">Bottom data</label>
+	  <select
+	    id="extraWeatherBottom"
+	    name="extraWeatherBottom"
+	    value={formData.extraWeatherBottom}
+	    onChange={(e) => inputChangeHandler(e)}
+	  >
+	    <option value="precip_mm">Precipitation (mm)</option>
+	    <option value="precip_in">Precipitation (in)</option>
+	    <option value="vis_km">Visibility (km)</option>
+	    <option value="vis_miles">Visibility (miles)</option>
+	    <option value="uv">UV Index</option>
+	    <option value="gust_kph">Wind (kph)</option>
+	    <option value="gust_mph">Wind (mph)</option>
+	  </select>
+	</InputGroup>
+
+
       <Button>Save changes</Button>
     </form>
   );

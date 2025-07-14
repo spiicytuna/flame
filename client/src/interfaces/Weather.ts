@@ -12,4 +12,11 @@ export interface Weather extends Model {
   windK: number;
   windM: number;
   location: string;
+  precip_mm: number;
+  precip_in: number;
+  vis_km: number;
+  vis_miles: number;
+  uv: number;
+  gust_kph: number;
+  gust_mph: number;
 }
