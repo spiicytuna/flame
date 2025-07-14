@@ -24,14 +24,21 @@
   padding-top: 5px;
 }
 
-.WeatherLocation {
-  margin-top: 5px;
-  font-size: 0.75rem;
-  color: var(--color-accent);
-}
-
 @media (min-width: 600px) {
   .WeatherWidget {
     visibility: visible;
   }
+}
+
+.WeatherIconBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.WeatherLocation {
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: var(--color-accent);
+  text-align: center;
 }

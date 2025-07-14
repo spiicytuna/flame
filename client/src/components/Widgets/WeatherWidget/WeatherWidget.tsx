@@ -61,12 +61,18 @@ export const WeatherWidget = (): JSX.Element => {
       {configLoading ||
         (config.WEATHER_API_KEY && weather.id > 0 && (
           <Fragment>
-            <div className={classes.WeatherIcon}>
-              <WeatherIcon
-                weatherStatusCode={weather.conditionCode}
-                isDay={weather.isDay}
-              />
+            <div className={classes.WeatherIconBlock}>
+              <div className={classes.WeatherIcon}>
+                <WeatherIcon
+                  weatherStatusCode={weather.conditionCode}
+                  isDay={weather.isDay}
+                />
+              </div>
+              <div className={classes.WeatherLocation}>
+                <span>{weather.location}</span>
+              </div>
             </div>
+  
             <div className={classes.WeatherDetails}>
               {config.isCelsius ? (
                 <span>{weather.tempC}°C</span>
@@ -74,7 +80,6 @@ export const WeatherWidget = (): JSX.Element => {
                 <span>{Math.round(weather.tempF)}°F</span>
               )}
               <span>{weather[config.weatherData]}%</span>
-              <span className={classes.WeatherLocation}>{weather.location}</span>
             </div>
           </Fragment>
         ))}
