@@ -8,6 +8,13 @@ const logger = new Logger();
 
 const weatherCache = {}; // { "lat,lon": { data, timestamp } }
 
+let weatherCache = {}; // make it mutable and accessible for clearing
+
+function clearWeatherCache() {
+  weatherCache = {};
+  logger.log('[Weather] Cache cleared');
+}
+
 const WEATHER_TTL = (() => {  // set env var in docker-compose WEATHER_CACHE_HOURS=1 // defaults to 3 hours if not set
   let hours = parseInt(process.env.WEATHER_CACHE_HOURS || '3', 10);
 
@@ -95,3 +102,4 @@ class Socket {
 }
 
 module.exports = Socket;
+module.exports.clearWeatherCache = clearWeatherCache;
