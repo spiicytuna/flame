@@ -14,5 +14,12 @@ export const weatherTemplate: Weather = {
   humidity: 0,
   windK: 0,
   windM: 0,
-  location: ''
+  location: '',
+  precip_mm: 0,
+  precip_in: 0,
+  vis_km: 0,
+  vis_miles: 0,
+  uv: 0,
+  gust_kph: 0,
+  gust_mph: 0
 };
