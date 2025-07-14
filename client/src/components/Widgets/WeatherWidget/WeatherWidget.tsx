@@ -15,6 +15,7 @@ import { WeatherIcon } from '../../UI';
 import { State } from '../../../store/reducers';
 import { weatherTemplate } from '../../../utility/templateObjects/weatherTemplate';
 
+
 export const WeatherWidget = (): JSX.Element => {
   const { loading: configLoading, config } = useSelector(
     (state: State) => state.config
@@ -67,15 +68,15 @@ export const WeatherWidget = (): JSX.Element => {
               />
             </div>
             <div className={classes.WeatherDetails}>
-              {/* TEMPERATURE */}
               {config.isCelsius ? (
                 <span>{weather.tempC}°C</span>
               ) : (
                 <span>{Math.round(weather.tempF)}°F</span>
               )}
-
-              {/* ADDITIONAL DATA */}
               <span>{weather[config.weatherData]}%</span>
+            </div>
+            <div className={classes.WeatherLocation}>
+              <span>{weather.location}</span>
             </div>
           </Fragment>
         ))}
