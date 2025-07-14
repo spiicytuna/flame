@@ -28,7 +28,7 @@ export const weatherSettingsTemplate: WeatherForm = {
   long: 0,
   isCelsius: true,
   weatherData: 'humidity',
-  weatherMode: 'geoip'
+  weatherMode: 'geoip',
   showExtraWeatherColumn: false,
   extraWeatherTop: 'uv',
   extraWeatherBottom: 'gust_mph',
