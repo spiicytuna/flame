@@ -34,4 +34,7 @@ export const configTemplate: Config = {
   weatherData: 'humidity',
   hideDate: false,
   weatherMode: 'geoip',
+  showExtraWeatherColumn: false,
+  extraWeatherTop: 'uv',
+  extraWeatherBottom: 'gust_mph',
 };
