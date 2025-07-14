@@ -6,6 +6,7 @@
 - 💾 Fallback to custom coordinates from `config.json` as configured in GUI settings
 - 🔁 Caching logic to reduce WeatherAPI requests
 - 🗄️ External logging, including reverse proxy logic for IPs, for integration to Vector > mtail > Prometheus > Grafana
+- 🎨 Custom browser favicon.ico
 - 🐳 Docker-first deployment using the included Dockerfile
 
 ---
@@ -16,6 +17,7 @@
 - Categories for bookmarks and (soon) apps
 - IP geolocation-based weather with caching
 - Light & dark themes
+- Customize favicon.com
 - Mobile-responsive design
 - No database required — JSON file-backed
 - Secure auth with optional login
@@ -63,6 +65,23 @@ services:
 [Weather] Fetching fresh data from WeatherAPI for key 37.6403,-122.0667
 [Weather] Serving from cache for key 37.6403,-122.0667
 ```
+
+## 🎨 Custom Favicon
+
+To use your own favicon:
+
+1. Save your `favicon.ico` in any local directory (e.g. `./branding/favicon.ico`)
+2. Add this volume to your `docker-compose.yaml`:
+
+   ```yaml
+   volumes:
+     - ./branding/favicon.ico:/app/public/icons/favicon.ico
+   ```
+
+3. Rebuild or restart the container
+
+Your favicon will now show up in the browser tab!
+
 
 ---
 
