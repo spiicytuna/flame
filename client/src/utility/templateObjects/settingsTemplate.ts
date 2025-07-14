@@ -29,6 +29,9 @@ export const weatherSettingsTemplate: WeatherForm = {
   isCelsius: true,
   weatherData: 'humidity',
   weatherMode: 'geoip'
+  showExtraWeatherColumn: false,
+  extraWeatherTop: 'uv',
+  extraWeatherBottom: 'gust_mph',
 };
 
 export const generalSettingsTemplate: GeneralForm = {
