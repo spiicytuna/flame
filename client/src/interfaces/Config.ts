@@ -33,4 +33,7 @@ export interface Config {
   weatherData: WeatherData;
   hideDate: boolean;
   weatherMode: 'geoip' | 'fixed';
+  showExtraWeatherColumn: boolean;
+  extraWeatherTop: string;
+  extraWeatherBottom: string;
 }
