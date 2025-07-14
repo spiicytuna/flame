@@ -2,6 +2,7 @@ const WebSocket = require('ws');
 const Logger = require('./utils/Logger');
 const { getGeoFromIP } = require('./utils/geoIP');
 const { getWeather } = require('./utils/weather');
+const loadConfig = require('./utils/loadConfig');
 
 const logger = new Logger();
 
@@ -58,9 +59,17 @@ class Socket {
       logger.log(`Socket: new connection from ${ip}`);
 
       try {
-        const loc = await getGeoFromIP(ip);
-        const lat = loc?.lat || 0;
-        const lon = loc?.lon || 0;
+        const config = await loadConfig();
+        let lat, lon;
+
+        if (config.weatherMode === 'fixed') {
+          lat = config.lat;
+          lon = config.long;
+        } else {
+          const loc = await getGeoFromIP(ip);
+          lat = loc?.lat || config.lat;
+          lon = loc?.lon || config.long;
+        }
 
         const weather = await getWeatherCached(lat, lon);
         if (weather) {
