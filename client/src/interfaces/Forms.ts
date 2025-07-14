@@ -7,6 +7,9 @@ export interface WeatherForm {
   isCelsius: boolean;
   weatherData: WeatherData;
   weatherMode: 'geoip' | 'fixed';
+  showExtraWeatherColumn: boolean;
+  extraWeatherTop: string;
+  extraWeatherBottom: string;
 }
 
 export interface GeneralForm {

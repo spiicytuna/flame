@@ -56,6 +56,27 @@ export const WeatherWidget = (): JSX.Element => {
     return () => webSocketClient.close();
   }, []);
 
+  function formatWeatherData(type: string, weather: Weather): string {
+  switch (type) {
+    case 'precip_mm':
+      return `p: ${weather.precip_mm}mm`;
+    case 'precip_in':
+      return `p: ${weather.precip_in}in`;
+    case 'vis_km':
+      return `v: ${weather.vis_km}km`;
+    case 'vis_miles':
+      return `v: ${weather.vis_miles}mi`;
+    case 'uv':
+      return `uv: ${weather.uv}`;
+    case 'gust_kph':
+      return `w: ${weather.gust_kph}kph`;
+    case 'gust_mph':
+      return `w: ${weather.gust_mph}mph`;
+    default:
+      return '';
+  }
+}
+
   return (
     <div className={classes.WeatherWidget}>
       {configLoading ||
@@ -82,6 +103,12 @@ export const WeatherWidget = (): JSX.Element => {
               )}
               <span>{weather[config.weatherData]}%</span>
             </div>
+	    {config.showExtraWeatherColumn && (
+            <div className={classes.WeatherDetailsAddl}>
+             <span>{formatWeatherData(config.extraWeatherTop, weather)}</span>
+             <span>{formatWeatherData(config.extraWeatherBottom, weather)}</span>
+            </div>
+            )}
           </Fragment>
         ))}
     </div>
