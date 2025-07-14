@@ -6,8 +6,6 @@ const loadConfig = require('./utils/loadConfig');
 
 const logger = new Logger();
 
-const weatherCache = {}; // { "lat,lon": { data, timestamp } }
-
 let weatherCache = {}; // make it mutable and accessible for clearing
 
 function clearWeatherCache() {
