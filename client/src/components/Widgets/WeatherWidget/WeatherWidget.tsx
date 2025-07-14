@@ -74,9 +74,7 @@ export const WeatherWidget = (): JSX.Element => {
                 <span>{Math.round(weather.tempF)}°F</span>
               )}
               <span>{weather[config.weatherData]}%</span>
-            </div>
-            <div className={classes.WeatherLocation}>
-              <span>{weather.location}</span>
+              <span className={classes.WeatherLocation}>{weather.location}</span>
             </div>
           </Fragment>
         ))}
