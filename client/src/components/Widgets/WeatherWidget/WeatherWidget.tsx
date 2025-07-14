@@ -66,6 +66,7 @@ export const WeatherWidget = (): JSX.Element => {
                 <WeatherIcon
                   weatherStatusCode={weather.conditionCode}
                   isDay={weather.isDay}
+		  className={classes.WeatherIcon}
                 />
               </div>
               <div className={classes.WeatherLocation}>
