@@ -42,35 +42,13 @@ class Socket {
       logger.log(`Socket: new connection from ${ip}`);
 
       try {
-        const loc = await getGeoFromIP(ip); 
+        const loc = await getGeoFromIP(ip);
         const lat = loc?.lat || 0;
         const lon = loc?.lon || 0;
 
         const weather = await getWeatherCached(lat, lon);
         if (weather) {
-          const message = {
-            type: 'weather',
-            payload: {
-              success: true,
-              data: [
-		{
-		  id: weather.id || 1,
-                  externalLastUpdate: weather.externalLastUpdate || '',
-                  tempC: weather.tempC,
-                  tempF: weather.tempF,
-                  isDay: weather.isDay,
-                  cloud: weather.cloud,
-                  conditionText: weather.conditionText,
-                  conditionCode: weather.conditionCode,
-                  humidity: weather.humidity,
-                  windK: weather.windK,
-                  windM: weather.windM
-		}
-	      ]
-            }
-          };
-
-          client.send(JSON.stringify(message));
+          client.send(JSON.stringify(weather));
           logger.log(`[Weather] WebSocket sent: ${weather.tempC || weather.temp}°C ${weather.conditionText || weather.condition} in ${weather.location || weather.name}`);
         } else {
           logger.log('[Weather] No weather data available for client');
@@ -91,3 +69,4 @@ class Socket {
 }
 
 module.exports = Socket;
+
