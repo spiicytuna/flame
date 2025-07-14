@@ -34,6 +34,7 @@ export const WeatherSettings = (): JSX.Element => {
   useEffect(() => {
     setFormData({
       ...config,
+      weatherMode: config.weatherMode || 'geoip',
     });
   }, [loading]);
 
