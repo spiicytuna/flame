@@ -7,8 +7,17 @@ const logger = new Logger();
 
 const weatherCache = {}; // { "lat,lon": { data, timestamp } }
 
-const WEATHER_TTL = (() => {  // set env var in docker-compose WEATHER_TTL_HOURS=1 // defaults to 3 hours
-  const hours = parseInt(process.env.WEATHER_TTL_HOURS || '3');
+const WEATHER_TTL = (() => {  // set env var in docker-compose WEATHER_CACHE_HOURS=1 // defaults to 3 hours if not set
+  let hours = parseInt(process.env.WEATHER_CACHE_HOURS || '3', 10);
+
+  if (isNaN(hours) || hours < 1) {
+    console.warn('[WARN] WEATHER_CACHE_HOURS must be a positive number. Defaulting to 3.');
+    hours = 3;
+  } else if (hours > 24) {
+    console.warn(`[WARN] WEATHER_CACHE_HOURS=${hours} is too high. Capping to 23 hours.`);
+    hours = 23;
+  }
+
   return hours * 60 * 60 * 1000;
 })();
 
