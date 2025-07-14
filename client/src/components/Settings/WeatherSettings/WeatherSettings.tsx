@@ -119,6 +119,22 @@ export const WeatherSettings = (): JSX.Element => {
         </span>
       </InputGroup>
 
+      <InputGroup>
+        <label htmlFor="weatherMode">Lookup Location</label>
+        <select
+          id="weatherMode"
+          name="weatherMode"
+          value={formData.weatherMode || 'geoip'}
+          onChange={(e) => inputChangeHandler(e)}
+        >
+          <option value="geoip">Automatic (GeoIP lookup)</option>
+          <option value="fixed">Use Fixed Lat/Long</option>
+        </select>
+        <span>
+          Use automatic IP-based lookup (default), or force static coordinates.
+        </span>
+      </InputGroup>
+
       <SettingsHeadline text="Location" />
       {/* LAT */}
       <InputGroup>
