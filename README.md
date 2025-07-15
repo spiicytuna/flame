@@ -144,7 +144,7 @@ This adds:
 - Health status set to `"unhealthy"` if 5+ recent error lines exist
 
 Returns nicely formatted JSON result:
-```json
+```bash
 curl -s http://localhost:5005/health?debug=true | jq -r '.status, .errors[], .recentErrorLines[]'
 ```
 
