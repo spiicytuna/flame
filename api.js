@@ -5,6 +5,9 @@ const healthRoutes = require('./routes/health');
 
 const api = express();
 
+// Register health route BEFORE static content handler
+api.use('/health', healthRoutes);
+
 // Static files
 api.use(express.static(join(__dirname, 'public')));
 api.use('/uploads', express.static(join(__dirname, 'data/uploads')));
@@ -24,7 +27,6 @@ api.use('/api/bookmarks', require('./routes/bookmark'));
 api.use('/api/queries', require('./routes/queries'));
 api.use('/api/auth', require('./routes/auth'));
 api.use('/api/themes', require('./routes/themes'));
-api.use('/health', require('./routes/health'));
 
 // Custom error handler
 api.use(errorHandler);
