@@ -2,7 +2,7 @@
 
 **Flame** is a self-hosted homepage for your homelab or server — now enhanced with:
 
-- 🌦 Weather based on **client IP geolocation** (automatic)
+- 🌦 Weather based on **client IP geolocation** (automatic) with a cached lookup system
 - 💾 Fallback to custom coordinates from `config.json` as configured in GUI settings
 - 🔁 Caching logic to reduce WeatherAPI requests
 - 🗄️ External logging, including reverse proxy logic for IPs, for integration to Vector > mtail > Prometheus > Grafana
@@ -52,6 +52,7 @@ services:
 ## 🌎 IP-Based Weather
 
 - Uses public services like `ip-api.com` and `ipinfo.io` to determine client geolocation.
+- The location shows below the weather  icon since weather is dynamic based on GeoIP.
 - Falls back to static coordinates defined in `config.json` (from Flame settings) if IP lookup fails.
 - Weather is retrieved from [WeatherAPI.com](https://www.weatherapi.com/), using your API key.
 - Supports IP-based switching (e.g. VPN users will see weather for new IP automatically).
@@ -87,6 +88,7 @@ Your favicon will now show up in the browser tab!
 
 
 ## 🌦️ Optional Third Weather Column
+![Weather Widget Screenshot](.github/weather.ThirdColumn.png)
 
 Flame now supports an **additional weather data column**, configurable in the UI under **Settings > Weather > Extra Data**.
 
@@ -127,6 +129,7 @@ Returns a simple JSON result:
 { "status": "healthy", "errors": [] }
 ```
 
+
 ### Debug Mode
 
 For deeper insight into failures, enable debug mode:
@@ -140,6 +143,21 @@ This adds:
 - The list of recent error messages (from `access.log`)
 - Health status set to `"unhealthy"` if 5+ recent error lines exist
 
+Returns nicely formatted JSON result:
+```json
+curl -s http://localhost:5005/health?debug=true | jq -r '.status, .errors[], .recentErrorLines[]'
+```
+
+For testing purposes:
+```bash
+# send simulated errors to the log (from inside the container)
+echo "[2025-07-15 00:00:00 UTC+0] [ERROR] Simulated error for testing" >> /var/log/flame-dash/access.log
+
+# cleanup simulated errors (from inside the container)
+sed -i '/Simulated error for testing/d' /app/log/access.log
+```
+
+
 ### What is Checked
 
 The healthcheck validates:
@@ -149,6 +167,7 @@ The healthcheck validates:
 - ✅ Weather logging directory `/app/log/` and file `access.log` exist
 - ✅ If in GeoIP mode, checks `geo-cache.json` exists and most recent IP has coordinates
 - ✅ Less than 5 errors in logs in the last 12 hours
+- ✅ Verify port 5005 is open and ready for connections (indirectly, healthcheck is served at port 5005)
 
 
 ---
