@@ -28,8 +28,8 @@ ENV NODE_ENV=production
 ENV PASSWORD=flame_password
 
 # Ensure correct permissions for runtime directory
-RUN mkdir -p /app/data /app/log \
-    && chown -R node:node /app/data /app/log
+RUN mkdir -p /app/data /app/log /app/public \
+    && chown -R node:node /app/data /app/log /app/public
 
 USER node
 
