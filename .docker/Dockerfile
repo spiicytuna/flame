@@ -18,13 +18,21 @@ RUN mkdir -p ./public ./data \
 
 FROM node:16-alpine
 
+WORKDIR /app
 COPY --from=builder /app /app
 
-WORKDIR /app
+RUN apk add --no-cache curl
 
-EXPOSE 5005
-
+# Set environment
 ENV NODE_ENV=production
 ENV PASSWORD=flame_password
 
-CMD ["sh", "-c", "chown -R node /app/data && node server.js"]
+# Ensure correct permissions for runtime directory
+RUN mkdir -p /app/data /app/log \
+    && chown -R node:node /app/data /app/log
+
+USER node
+
+EXPOSE 5005
+
+CMD ["node", "server.js"]
