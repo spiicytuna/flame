@@ -25,9 +25,7 @@ api.use('/api/bookmarks', require('./routes/bookmark'));
 api.use('/api/queries', require('./routes/queries'));
 api.use('/api/auth', require('./routes/auth'));
 api.use('/api/themes', require('./routes/themes'));
-<<<<<<< HEAD
 api.use('/api/changelog', changelog);
-api.use('/app/changelog', changelog);
 api.use('/api/version', version);
 
 api.get(/^\/(?!api)/, (req, res) => {
