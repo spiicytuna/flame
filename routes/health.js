@@ -48,10 +48,15 @@ router.get('/', async (req, res) => {
   };
 
   if (debug && recentErrors.length > 0) {
-    res.json({
+    res.status(status === 'healthy' ? 200 : 503).json({
       status,
       errors,
-      recentErrorLines: recentErrors.join('\n')
+      recentErrorLines: recentErrors  // ← Keep as array!
+    });
+  } else {
+    res.status(status === 'healthy' ? 200 : 503).json({
+      status,
+      errors
     });
   }
 
