@@ -1,6 +1,7 @@
 const { join } = require('path');
 const express = require('express');
 const { errorHandler } = require('./middleware');
+const healthRoutes = require('./routes/health');
 
 const api = express();
 
@@ -23,7 +24,7 @@ api.use('/api/bookmarks', require('./routes/bookmark'));
 api.use('/api/queries', require('./routes/queries'));
 api.use('/api/auth', require('./routes/auth'));
 api.use('/api/themes', require('./routes/themes'));
-app.use('/health', require('./routes/health'));
+api.use('/health', require('./routes/health'));
 
 // Custom error handler
 api.use(errorHandler);

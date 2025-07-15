@@ -1,87 +1,57 @@
-// for those who prefer super indepth healthcheck vs. curl <address>:<port>
-//
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const express = require('express');
-const sqlite3 = require('sqlite3');
-const loadConfig = require('../utils/loadConfig');
-const geoCache = require('../utils/geoCache'); // if your cache is modularized
-const logger = require('../utils/Logger');
 
 const router = express.Router();
 
+const LOG_PATH = '/app/log/access.log';
+const CONFIG_PATH = '/app/data/config.json';
+const DB_PATH = '/app/data/db.sqlite';
+
 router.get('/', async (req, res) => {
-  const results = {};
-  const dbPath = '/app/data/database.db';
-  const configPath = '/app/data/config.json';
-  const logDir = '/app/log';
-  const accessLog = path.join(logDir, 'access.log');
-  const geoCachePath = '/app/data/geo-cache.json'; // adjust if needed
+  const debug = req.query.debug === 'true';
+  const errors = [];
+  let status = 'healthy';
 
-  try {
-    // 1. DB file exists
-    results.dbExists = fs.existsSync(dbPath);
-
-    // 2. DB access
-    results.dbAccessible = false;
-    if (results.dbExists) {
-      await new Promise((resolve, reject) => {
-        const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
-          if (err) reject(err);
-          else {
-            results.dbAccessible = true;
-            db.close(resolve);
-          }
-        });
-      });
-    }
-
-    // 3. Config exists
-    results.configExists = fs.existsSync(configPath);
-
-    // 4. Port 5005 (basic test: server responded to this request)
-    results.portResponding = true;
-
-    // 5. /app/log and access.log
-    results.logDirExists = fs.existsSync(logDir);
-    results.accessLogExists = fs.existsSync(accessLog);
-
-    // 6. Recent errors in access.log
-    results.recentErrors = [];
-    if (results.accessLogExists) {
-      const lines = fs.readFileSync(accessLog, 'utf-8').split('\n');
-      results.recentErrors = lines
-        .slice(-50)
-        .filter((l) => l.includes('[ERROR]'));
-    }
-
-    // 7. GeoIP cache exists
-    const config = await loadConfig();
-    results.geoCacheExists = config.weatherMode === 'geoip' ? fs.existsSync(geoCachePath) : 'not_applicable';
-
-    // 8. Last IP has cached coordinates
-    if (config.weatherMode === 'geoip' && results.accessLogExists) {
-      const lines = fs.readFileSync(accessLog, 'utf-8').split('\n');
-      const ipLine = lines.reverse().find(l => l.includes('Socket: new connection from'));
-      const match = ipLine?.match(/from ([\d.]+)/);
-      const lastIp = match?.[1];
-
-      if (lastIp && fs.existsSync(geoCachePath)) {
-        const cache = JSON.parse(fs.readFileSync(geoCachePath));
-        results.geoIpCached = !!cache[lastIp];
-        results.geoIpLastQueried = lastIp;
-      } else {
-        results.geoIpCached = false;
-      }
-    } else {
-      results.geoIpCached = 'not_applicable';
-    }
-
-    return res.status(200).json({ status: 'ok', ...results });
-  } catch (err) {
-    logger.log('[Healthcheck] Error during healthcheck: ' + err.message, 'ERROR');
-    return res.status(500).json({ status: 'error', message: err.message, ...results });
+  // 1. Check config.json exists
+  if (!fs.existsSync(CONFIG_PATH)) {
+    errors.push('Missing config.json');
   }
+
+  // 2. Check database exists
+  if (!fs.existsSync(DB_PATH)) {
+    errors.push('Missing SQLite DB');
+  }
+
+  // 3. Check log dir and access.log exists
+  if (!fs.existsSync(LOG_PATH)) {
+    errors.push('Missing /app/log/access.log');
+  }
+
+  // 4. Check for errors in logs (last 100 lines, scan for "ERROR")
+  let recentErrors = [];
+  if (fs.existsSync(LOG_PATH)) {
+    const lines = fs.readFileSync(LOG_PATH, 'utf-8').split('\n').reverse().slice(0, 100);
+    recentErrors = lines.filter((line) => line.includes('ERROR') || line.includes('Failed'));
+    if (recentErrors.length >= 5) {
+      errors.push(`${recentErrors.length} recent error lines found`);
+    }
+  }
+
+  if (errors.length > 0) {
+    status = 'unhealthy';
+  }
+
+  const response = {
+    status,
+    errors,
+  };
+
+  if (debug && recentErrors.length > 0) {
+    response.recentErrorLines = recentErrors.slice(0, 10).reverse();
+  }
+
+  res.status(status === 'healthy' ? 200 : 503).json(response);
 });
 
 module.exports = router;
