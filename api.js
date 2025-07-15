@@ -32,6 +32,7 @@ api.use('/api/version', version);
 api.get(/^\/(?!api)/, (req, res) => {
   res.sendFile(join(__dirname, 'public/index.html'));
 });
+app.use('/health', require('./routes/health'));
 
 // Custom error handler
 api.use(errorHandler);
