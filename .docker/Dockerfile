@@ -21,7 +21,7 @@ FROM node:16-alpine
 WORKDIR /app
 COPY --from=builder /app /app
 
-RUN apk add --no-cache curl
+RUN apk add --no-cache curl jq
 
 # Set environment
 ENV NODE_ENV=production
