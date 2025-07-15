@@ -46,21 +46,21 @@ router.get('/', async (req, res) => {
     status,
     errors,
   };
-
+  
   if (debug && recentErrors.length > 0) {
-    res.status(status === 'healthy' ? 200 : 503).json({
+    return res.status(status === 'healthy' ? 200 : 503).json({
       status,
       errors,
-      recentErrorLines: recentErrors  // ← Keep as array!
+      recentErrorLines: recentErrors
     });
   } else {
-    res.status(status === 'healthy' ? 200 : 503).json({
+    return res.status(status === 'healthy' ? 200 : 503).json({
       status,
       errors
     });
   }
 
-  res.status(status === 'healthy' ? 200 : 503).json(response);
+
 });
 
 module.exports = router;
