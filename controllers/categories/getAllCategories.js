@@ -14,7 +14,12 @@ const getAllCategories = asyncWrapper(async (req, res, next) => {
   let output;
 
   // categories visibility
-  const where = req.isAuthenticated ? {} : { isPublic: true };
+  const section = req.query.section || 'bookmarks';
+
+  // categories visibility + section filter
+  const where = req.isAuthenticated
+    ? { section }
+    : { section, isPublic: true };
 
   const order =
     orderType == 'name'

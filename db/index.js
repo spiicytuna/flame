@@ -1,3 +1,4 @@
+// db/index.js
 const { Sequelize } = require('sequelize');
 const { join } = require('path');
 const Umzug = require('umzug');
@@ -11,6 +12,25 @@ const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: './data/db.sqlite',
   logging: false,
+  // one connection is safest for sqlite
+  pool: { max: 1, min: 0, idle: 10000, acquire: 30000 },
+});
+
+// log only once even if multiple connects happen
+let fkLogOnce = false;
+
+// ensure PRAGMA is applied on every new connection
+sequelize.addHook('afterConnect', async (connection /*, config */) => {
+  // for sqlite, `connection` is a sqlite3 Database object that supports `run`
+  await new Promise((resolve, reject) => {
+    connection.run('PRAGMA foreign_keys = ON;', (err) =>
+      err ? reject(err) : resolve()
+    );
+  });
+  if (!fkLogOnce) {
+    logger.log('SQLite PRAGMA foreign_keys = ON');
+    fkLogOnce = true;
+  }
 });
 
 const umzug = new Umzug({
@@ -19,9 +39,7 @@ const umzug = new Umzug({
     params: [sequelize.getQueryInterface()],
   },
   storage: 'sequelize',
-  storageOptions: {
-    sequelize,
-  },
+  storageOptions: { sequelize },
 });
 
 const connectDB = async () => {
@@ -30,10 +48,9 @@ const connectDB = async () => {
 
     await sequelize.authenticate();
 
-    // execute all pending migrations
-    const pendingMigrations = await umzug.pending();
-
-    if (pendingMigrations.length > 0) {
+    // run any pending migrations
+    const pending = await umzug.pending();
+    if (pending.length > 0) {
       logger.log('Executing pending migrations');
       await umzug.up();
     }

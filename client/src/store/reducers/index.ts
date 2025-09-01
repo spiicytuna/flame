@@ -6,6 +6,7 @@ import { notificationReducer } from './notification';
 import { appsReducer } from './app';
 import { bookmarksReducer } from './bookmark';
 import { authReducer } from './auth';
+import { categoriesReducer } from './category';
 
 export const reducers = combineReducers({
   theme: themeReducer,
@@ -14,6 +15,7 @@ export const reducers = combineReducers({
   apps: appsReducer,
   bookmarks: bookmarksReducer,
   auth: authReducer,
+  categories: categoriesReducer
 });
 
 export type State = ReturnType<typeof reducers>;

@@ -1,12 +1,15 @@
-import { Model, Bookmark } from '.';
+import { Model } from '.';
+import type { Bookmark } from './Bookmark';
 
 export interface NewCategory {
   name: string;
-  isPublic: boolean;
+  isPublic: boolean | number;
+  section?: 'bookmarks' | 'apps';
 }
 
 export interface Category extends Model, NewCategory {
-  isPinned: boolean;
-  orderId: number;
-  bookmarks: Bookmark[];
+  isPinned: boolean | number;
+  orderId?: number | null;
+
+  bookmarks?: Bookmark[];
 }

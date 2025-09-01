@@ -43,7 +43,7 @@ export const BookmarksTable = ({ openFormForUpdating }: Props): JSX.Element => {
   // Copy bookmarks array
   useEffect(() => {
     if (categoryInEdit) {
-      setLocalBookmarks([...categoryInEdit.bookmarks]);
+      setLocalBookmarks([...(categoryInEdit?.bookmarks ?? [])]);
     }
   }, [categoryInEdit]);
 
@@ -83,14 +83,14 @@ export const BookmarksTable = ({ openFormForUpdating }: Props): JSX.Element => {
 
   const updateBookmarkHandler = (id: number) => {
     const bookmark =
-      categoryInEdit?.bookmarks.find((b) => b.id === id) || bookmarkTemplate;
+      (categoryInEdit?.bookmarks ?? []).find((b) => b.id === id) || bookmarkTemplate;
 
     openFormForUpdating(bookmark);
   };
 
   const changeBookmarkVisibiltyHandler = (id: number) => {
     const bookmark =
-      categoryInEdit?.bookmarks.find((b) => b.id === id) || bookmarkTemplate;
+      (categoryInEdit?.bookmarks ?? []).find((b) => b.id === id) || bookmarkTemplate;
 
     const categoryId = categoryInEdit?.id || -1;
     const [prev, curr] = [categoryId, categoryId];

@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 
 // Redux
@@ -28,66 +28,58 @@ import { escapeRegex } from '../../utility';
 export const Home = (): JSX.Element => {
   const {
     apps: { apps, loading: appsLoading },
+    // NOTE: there is ONE categories list in the bookmarks slice; it contains both sections.
     bookmarks: { categories, loading: bookmarksLoading },
     config: { config },
     auth: { isAuthenticated },
   } = useSelector((state: State) => state);
 
   const dispatch = useDispatch();
-  const { getApps, getCategories } = bindActionCreators(
-    actionCreators,
-    dispatch
-  );
+  const { getApps, getCategories } = bindActionCreators(actionCreators, dispatch);
 
   // Local search query
   const [localSearch, setLocalSearch] = useState<null | string>(null);
   const [appSearchResult, setAppSearchResult] = useState<null | App[]>(null);
-  const [bookmarkSearchResult, setBookmarkSearchResult] = useState<
-    null | Category[]
-  >(null);
+  const [bookmarkSearchResult, setBookmarkSearchResult] = useState<null | Category[]>(null);
 
-  // Load applications
+  // Unconditionally load apps & categories on first mount
   useEffect(() => {
-    if (!apps.length) {
-      getApps();
-    }
+    getApps();
+    getCategories(); // returns both sections; we’ll filter below
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load bookmark categories
-  useEffect(() => {
-    if (!categories.length) {
-      getCategories();
-    }
-  }, []);
+  // Derive app-only categories for grouping Applications
+  const appCategories = useMemo(
+    () => (categories || []).filter((c: any) => c.section === 'apps'),
+    [categories]
+  );
 
+  // Search
   useEffect(() => {
     if (localSearch) {
       // Search through apps
-      setAppSearchResult([
-        ...apps.filter(({ name, description }) =>
-          new RegExp(escapeRegex(localSearch), 'i').test(
-            `${name} ${description}`
-          )
-        ),
-      ]);
+      const re = new RegExp(escapeRegex(localSearch), 'i');
+      setAppSearchResult(apps.filter(({ name, description }) => re.test(`${name} ${description}`)));
 
-      // Search through bookmarks
-      const category = { ...categories[0] };
+      // Search through bookmarks — build a synthetic “Search Results” category
+      const base: Category | undefined = categories[0];
+      const searchCategory: Category = base
+        ? { ...base }
+        : // minimal shape in case categories is empty
+          ({ id: 0, name: '', isPinned: false, isPublic: true, orderId: 0 } as any);
 
-      category.name = 'Search Results';
-      category.bookmarks = categories
-        .map(({ bookmarks }) => bookmarks)
-        .flat()
-        .filter(({ name }) =>
-          new RegExp(escapeRegex(localSearch), 'i').test(name)
-        );
+      searchCategory.name = 'Search Results';
+      searchCategory.bookmarks = (categories ?? [])
+        .flatMap(({ bookmarks }) => bookmarks ?? [])
+        .filter(({ name }) => re.test(name));
 
-      setBookmarkSearchResult([category]);
+      setBookmarkSearchResult([searchCategory]);
     } else {
       setAppSearchResult(null);
       setBookmarkSearchResult(null);
     }
-  }, [localSearch]);
+  }, [localSearch, apps, categories]);
 
   return (
     <Container>
@@ -107,37 +99,55 @@ export const Home = (): JSX.Element => {
       !apps.some((a) => a.isPinned) &&
       !categories.some((c) => c.isPinned) ? (
         <Message>
-          Welcome to Flame! Go to <Link to="/settings/app">/settings</Link>,
-          login and start customizing your new homepage
+          Welcome to Flame! Go to <Link to="/settings/app">/settings</Link>, login and start
+          customizing your new homepage
         </Message>
-      ) : (
-        <></>
-      )}
+      ) : null}
 
+      {/* Applications */}
       {!config.hideApps && (isAuthenticated || apps.some((a) => a.isPinned)) ? (
         <Fragment>
           <SectionHeadline title="Applications" link="/applications" />
-          {appsLoading ? (
+          {appsLoading || bookmarksLoading ? (
+            // wait for BOTH slices so we can group by category on first paint
             <Spinner />
+          ) : appCategories.length === 0 ? (
+            // Fallback to previous A→Z if there truly are no app categories
+            <AppGrid apps={apps} searching={!!localSearch} />
           ) : (
-            <AppGrid
-              apps={
-                !appSearchResult
-                  ? apps.filter(({ isPinned }) => isPinned)
-                  : appSearchResult
-              }
-              totalApps={apps.length}
-              searching={!!localSearch}
-            />
+            <>
+              {appCategories
+                .slice()
+                .sort((a, b) => (a.orderId ?? 0) - (b.orderId ?? 0))
+                .map((cat) => {
+                  const list = (apps || []).filter((a) => a.categoryId === cat.id);
+                  if (list.length === 0) return null;
+                  return (
+                    <div key={cat.id} style={{ marginBottom: '2rem' }}>
+                      <h2 style={{ margin: '0 0 0.5rem' }}>{cat.name}</h2>
+                      <AppGrid apps={list} searching={!!localSearch} />
+                    </div>
+                  );
+                })}
+      
+              {(apps || []).some((a) => a.categoryId == null) && (
+                <div style={{ marginBottom: '2rem' }}>
+                  <h2 style={{ margin: '0 0 0.5rem' }}>Uncategorized</h2>
+                  <AppGrid
+                    apps={(apps || []).filter((a) => a.categoryId == null)}
+                    searching={!!localSearch}
+                  />
+                </div>
+              )}
+            </>
           )}
+      
           <div className={classes.HomeSpace}></div>
         </Fragment>
-      ) : (
-        <></>
-      )}
-
-      {!config.hideCategories &&
-      (isAuthenticated || categories.some((c) => c.isPinned)) ? (
+      ) : null}
+      
+      {/* Bookmarks */}
+      {!config.hideCategories && (isAuthenticated || categories.some((c) => c.isPinned)) ? (
         <Fragment>
           <SectionHeadline title="Bookmarks" link="/bookmarks" />
           {bookmarksLoading ? (
@@ -147,7 +157,7 @@ export const Home = (): JSX.Element => {
               categories={
                 !bookmarkSearchResult
                   ? categories.filter(
-                      ({ isPinned, bookmarks }) => isPinned && bookmarks.length
+                      ({ isPinned, bookmarks }) => isPinned && (bookmarks?.length ?? 0) > 0
                     )
                   : bookmarkSearchResult
               }
@@ -157,9 +167,7 @@ export const Home = (): JSX.Element => {
             />
           )}
         </Fragment>
-      ) : (
-        <></>
-      )}
+      ) : null}
 
       <Link to="/settings" className={classes.SettingsButton}>
         <Icon icon="mdiCog" color="var(--color-background)" />

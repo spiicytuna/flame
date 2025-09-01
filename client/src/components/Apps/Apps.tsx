@@ -1,11 +1,18 @@
-import { useEffect, useState } from 'react';
+// client/src/components/Apps/Apps.tsx
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 // Redux
 import { useDispatch, useSelector } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import { State } from '../../store/reducers';
+import { actionCreators } from '../../store';
 
-// Typescript
-import { App } from '../../interfaces';
+// Import the bookmarks-specific action directly
+import { getCategoriesForSection } from '../../store/action-creators/bookmark';
+
+// Types
+import type { App as AppModel, Category } from '../../interfaces';
 
 // CSS
 import classes from './Apps.module.css';
@@ -18,93 +25,186 @@ import { AppGrid } from './AppGrid/AppGrid';
 import { AppForm } from './AppForm/AppForm';
 import { AppTable } from './AppTable/AppTable';
 
-// Utils
-import { State } from '../../store/reducers';
-import { bindActionCreators } from 'redux';
-import { actionCreators } from '../../store';
+// Category modal + table (for Applications)
+import { CategoryForm } from './CategoryForm/CategoryForm';
+import { AppCategoryTable } from './CategoryTable/CategoryTable';
 
 interface Props {
   searching: boolean;
 }
 
 export const Apps = (props: Props): JSX.Element => {
-  // Get Redux state
+  // Redux state
   const {
     apps: { apps, loading },
     auth: { isAuthenticated },
+    bookmarks: { categories: allCategories }, // we store categories here
+    categories: { categoryInEdit }, // only for edit modal prefill
   } = useSelector((state: State) => state);
 
-  // Get Redux action creators
+  // Bind app actions
   const dispatch = useDispatch();
   const { getApps, setEditApp } = bindActionCreators(actionCreators, dispatch);
 
+  // Local UI state
+  const [modalIsOpen, setModalIsOpen] = useState(false); // app form
+  const [showAppTable, setShowAppTable] = useState(false); // edit apps
+  const [categoryModalIsOpen, setCategoryModalIsOpen] = useState(false);
+  const [isInCategoryUpdate, setIsInCategoryUpdate] = useState(false);
+  const [showCategoryTable, setShowCategoryTable] = useState(false);
+
   // Load apps if array is empty
   useEffect(() => {
-    if (!apps.length) {
-      getApps();
-    }
-  }, []);
+    if (!apps.length) getApps();
+  }, [apps.length, getApps]);
 
-  // Form
-  const [modalIsOpen, setModalIsOpen] = useState(false);
-  const [showTable, setShowTable] = useState(false);
-
-  // Observe if user is authenticated -> set default view if not
+  // Reset edit UIs when auth changes
   useEffect(() => {
     if (!isAuthenticated) {
-      setShowTable(false);
+      setShowAppTable(false);
       setModalIsOpen(false);
+      setShowCategoryTable(false);
+      setCategoryModalIsOpen(false);
     }
   }, [isAuthenticated]);
 
-  // Form actions
-  const toggleModal = (): void => {
-    setModalIsOpen(!modalIsOpen);
-  };
+  // Fetch ONLY the 'apps' categories into the bookmarks slice
+  useEffect(() => {
+    (dispatch as any)(getCategoriesForSection('apps'));
+  }, [dispatch]);
 
-  const toggleEdit = (): void => {
-    setShowTable(!showTable);
-  };
+  // Derived: only the categories for Applications (defensive if API returns extra)
+  const appCategories = useMemo(
+    () => (allCategories || []).filter((c: any) => c.section === 'apps'),
+    [allCategories]
+  );
 
-  const openFormForUpdating = (app: App): void => {
+  // Group apps by categoryId for the grid view
+  const groupedApps = useMemo(() => {
+    const groups = new Map<number | 'uncat', AppModel[]>();
+    apps.forEach((a) => {
+      const key = a.categoryId ?? 'uncat';
+      const curr = groups.get(key) || [];
+      curr.push(a);
+      groups.set(key, curr);
+    });
+    return groups;
+  }, [apps]);
+
+  // Handlers: App form
+  const openCreateApp = (): void => {
+    setEditApp(null);
+    setModalIsOpen(true);
+  };
+  const openFormForUpdating = (app: AppModel): void => {
     setEditApp(app);
     setModalIsOpen(true);
+  };
+  const toggleAppModal = (): void => setModalIsOpen((s) => !s);
+
+  // Handlers: Category form
+  const toggleCategoryModal = (): void => {
+    setIsInCategoryUpdate(false);
+    setCategoryModalIsOpen((s) => !s);
+  };
+  const openFormForUpdatingCategory = (_category: Category): void => {
+    setIsInCategoryUpdate(true);
+    setCategoryModalIsOpen(true);
   };
 
   return (
     <Container>
+      {/* App create/update modal */}
       <Modal isOpen={modalIsOpen} setIsOpen={setModalIsOpen}>
-        <AppForm modalHandler={toggleModal} />
+        <AppForm modalHandler={toggleAppModal} />
       </Modal>
 
-      <Headline
-        title="All Applications"
-        subtitle={<Link to="/">Go back</Link>}
-      />
+      {/* Category create/update modal (Applications section) */}
+      <Modal isOpen={categoryModalIsOpen} setIsOpen={toggleCategoryModal}>
+        <CategoryForm
+          modalHandler={toggleCategoryModal}
+          category={isInCategoryUpdate ? categoryInEdit ?? undefined : undefined}
+        />
+      </Modal>
+
+      <Headline title="All Applications" subtitle={<Link to="/">Go back</Link>} />
 
       {isAuthenticated && (
         <div className={classes.ActionsContainer}>
           <ActionButton
-            name="Add"
-            icon="mdiPlusBox"
+            name={showAppTable ? 'Done Editing Apps' : 'Edit Applications'}
+            icon="mdiPencil"
             handler={() => {
-              setEditApp(null);
-              toggleModal();
+              setShowAppTable((v) => !v);
+              if (!showAppTable) setShowCategoryTable(false); // hide the other panel
             }}
           />
-          <ActionButton name="Edit" icon="mdiPencil" handler={toggleEdit} />
+          <ActionButton
+            name={showCategoryTable ? 'Done Editing Categories' : 'Edit Categories'}
+            icon="mdiPencil"
+            handler={() => {
+              setShowCategoryTable((v) => !v);
+              if (!showCategoryTable) setShowAppTable(false); // hide the other panel
+            }}
+          />
+          <ActionButton name="Add Application" icon="mdiPlusBox" handler={openCreateApp} />
+          <ActionButton
+            name="Add Category"
+            icon="mdiPlusBox"
+            handler={() => {
+              setIsInCategoryUpdate(false);
+              setCategoryModalIsOpen(true);
+            }}
+          />
         </div>
       )}
 
+      {/* Main body */}
       <div className={classes.Apps}>
         {loading ? (
           <Spinner />
-        ) : !showTable ? (
-          <AppGrid apps={apps} searching={props.searching} />
-        ) : (
+        ) : showCategoryTable ? (
+          <AppCategoryTable openFormForUpdating={openFormForUpdatingCategory} />
+        ) : showAppTable ? (
           <AppTable openFormForUpdating={openFormForUpdating} />
+        ) : (
+          // ---------- grouped grid with fallback ----------
+          <>
+            {appCategories.length === 0 ? (
+              <AppGrid apps={apps} searching={props.searching} />
+            ) : (
+              <>
+                {appCategories
+                  .slice()
+                  .sort((a, b) => (a.orderId ?? 0) - (b.orderId ?? 0))
+                  .map((cat) => {
+                    const list = (apps || []).filter((a) => a.categoryId === cat.id);
+                    if (list.length === 0) return null;
+                    return (
+                      <div key={cat.id} style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ margin: '0 0 0.5rem' }}>{cat.name}</h2>
+                        <AppGrid apps={list} searching={props.searching} />
+                      </div>
+                    );
+                  })}
+
+                {(apps || []).some((a) => a.categoryId == null) && (
+                  <div style={{ marginBottom: '2rem' }}>
+                    <h2 style={{ margin: '0 0 0.5rem' }}>Uncategorized</h2>
+                    <AppGrid
+                      apps={(apps || []).filter((a) => a.categoryId == null)}
+                      searching={props.searching}
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </>
+          // ---------- end grouped grid with fallback ----------
         )}
       </div>
     </Container>
   );
 };
+
+export default Apps;

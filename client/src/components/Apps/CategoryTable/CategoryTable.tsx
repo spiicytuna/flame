@@ -14,17 +14,20 @@ import { bindActionCreators } from 'redux';
 import { actionCreators } from '../../../store';
 
 // Typescript
-import { Bookmark, Category } from '../../../interfaces';
+import type { Category } from '../../../interfaces';
 
 // UI
 import { Message, Table } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
 
+// Thunk to load only apps categories
+import { getCategoriesForSection } from '../../../store/action-creators/bookmark';
+
 interface Props {
-  openFormForUpdating: (data: Category | Bookmark) => void;
+  openFormForUpdating: (category: Category) => void;
 }
 
-export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
+export const AppCategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
   const {
     config: { config },
     bookmarks: { categories },
@@ -37,13 +40,24 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     createNotification,
     reorderCategories,
     updateCategory,
-  } = bindActionCreators(actionCreators, dispatch);
+    // bind the section-aware loader
+    getCategoriesForSection: loadSectionCategories,
+  } = bindActionCreators(
+    { ...actionCreators, getCategoriesForSection },
+    dispatch
+  );
 
   const [localCategories, setLocalCategories] = useState<Category[]>([]);
 
-  // Copy categories array safely
+  // Load only the "apps" section once
   useEffect(() => {
-    setLocalCategories([...(categories ?? [])]);
+    loadSectionCategories('apps');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Mirror store → local state
+  useEffect(() => {
+    setLocalCategories(categories || []);
   }, [categories]);
 
   // Drag and drop handler
@@ -57,46 +71,46 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     }
     if (!result.destination) return;
 
-    const tmp = [...localCategories];
-    const [moved] = tmp.splice(result.source.index, 1);
-    tmp.splice(result.destination.index, 0, moved);
+    const reordered = [...localCategories];
+    const [moved] = reordered.splice(result.source.index, 1);
+    reordered.splice(result.destination.index, 0, moved);
 
-    setLocalCategories(tmp);
-    reorderCategories(tmp);
+    setLocalCategories(reordered);
+    reorderCategories(reordered);
   };
 
   // Action handlers
   const deleteCategoryHandler = (id: number, name: string) => {
-    const proceed = window.confirm(
-      `Are you sure you want to delete ${name}? It will delete ALL assigned bookmarks`
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete category "${name}"? It will remove it for Applications.`
     );
-    if (proceed) deleteCategory(id);
+    if (confirmDelete) deleteCategory(id);
   };
 
   const updateCategoryHandler = (id: number) => {
-    const category = (categories ?? []).find((c) => c.id === id) as Category;
-    openFormForUpdating(category);
+    const category = localCategories.find((c) => c.id === id);
+    if (category) openFormForUpdating(category);
   };
 
   const pinCategoryHandler = (id: number) => {
-    const category = (categories ?? []).find((c) => c.id === id) as Category;
-    pinCategory(category);
+    const category = localCategories.find((c) => c.id === id);
+    if (category) pinCategory(category);
   };
 
-  const changeCategoryVisibiltyHandler = (id: number) => {
-    const category = (categories ?? []).find((c) => c.id === id) as Category;
-    updateCategory(id, { ...category, isPublic: !category.isPublic });
+  const toggleVisibilityHandler = (id: number) => {
+    const category = localCategories.find((c) => c.id === id);
+    if (category) updateCategory(id, { ...category, isPublic: !category.isPublic });
   };
 
   return (
     <Fragment>
       <Message isPrimary={false}>
         {config.useOrdering === 'orderId' ? (
-          <p>You can drag and drop single rows to reorder categories</p>
+          <p>You can drag and drop rows to reorder categories.</p>
         ) : (
           <p>
-            Custom order is disabled. You can change it in the{' '}
-            <Link to="/settings/general">settings</Link>
+            Custom ordering is disabled. Enable it in{' '}
+            <Link to="/settings/general">Settings</Link>.
           </p>
         )}
       </Message>
@@ -104,10 +118,7 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
       <DragDropContext onDragEnd={dragEndHandler}>
         <Droppable droppableId="categories">
           {(provided) => (
-            <Table
-              headers={['Name', 'Visibility', 'Actions']}
-              innerRef={provided.innerRef}
-            >
+            <Table headers={['Name', 'Visibility', 'Actions']} innerRef={provided.innerRef}>
               {localCategories.map((category, index) => (
                 <Draggable
                   key={category.id}
@@ -116,14 +127,12 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
                 >
                   {(providedDraggable, snapshot) => {
                     const style = {
-                      border: snapshot.isDragging
-                        ? '1px solid var(--color-accent)'
-                        : 'none',
+                      border: snapshot.isDragging ? '1px solid var(--color-accent)' : 'none',
                       borderRadius: '4px',
                       ...(providedDraggable.draggableProps.style as object),
                     };
 
-                    // 🔧 Normalize numeric flags to booleans so they fit TableActions' Entity type
+                    // Normalize flags to booleans for TableActions’ Entity type
                     const entityForActions = {
                       ...category,
                       isPinned: Boolean((category as any).isPinned),
@@ -144,11 +153,11 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
 
                         {!snapshot.isDragging && (
                           <TableActions
-                            entity={entityForActions} // << was entity={category}
+                            entity={entityForActions}
                             deleteHandler={deleteCategoryHandler}
                             updateHandler={updateCategoryHandler}
                             pinHanlder={pinCategoryHandler}
-                            changeVisibilty={changeCategoryVisibiltyHandler}
+                            changeVisibilty={toggleVisibilityHandler}
                           />
                         )}
                       </tr>
@@ -157,7 +166,6 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
                 </Draggable>
               ))}
 
-              {/* required placeholder for react-beautiful-dnd */}
               {provided.placeholder}
             </Table>
           )}
@@ -166,3 +174,5 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     </Fragment>
   );
 };
+
+export default AppCategoryTable;

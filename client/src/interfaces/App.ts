@@ -6,9 +6,19 @@ export interface NewApp {
   icon: string;
   isPublic: boolean;
   description: string;
+  /** optional while filling the form */
+  categoryId?: number;
 }
 
-export interface App extends Model, NewApp {
+/** What the API returns (fully-populated) */
+export interface App extends Model {
+  name: string;
+  url: string;
+  icon: string;
+  isPublic: boolean;
+  description: string;
   orderId: number;
   isPinned: boolean;
+  /** required on persisted entities */
+  categoryId: number;
 }
