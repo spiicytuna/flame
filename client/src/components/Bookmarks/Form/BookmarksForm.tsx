@@ -27,7 +27,10 @@ export const BookmarksForm = ({
   bookmark,
   modalHandler,
 }: Props): JSX.Element => {
-  const { categories } = useSelector((state: State) => state.bookmarks);
+  const { categories: allCategories } = useSelector((state: State) => state.bookmarks);
+  const categories = (allCategories || []).filter(
+    (category) => category.section === 'bookmarks'
+  );
 
   const dispatch = useDispatch();
   const { addBookmark, updateBookmark, createNotification } =

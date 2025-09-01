@@ -30,8 +30,13 @@ interface Props {
 export const AppCategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
   const {
     config: { config },
-    bookmarks: { categories },
+    bookmarks: { categories: allCategories },
   } = useSelector((state: State) => state);
+  
+  // Create a new list that is filtered for ONLY app categories
+  const categories = (allCategories || []).filter(
+    (category) => category.section === 'apps'
+  );
 
   const dispatch = useDispatch();
   const {

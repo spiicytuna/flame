@@ -5,6 +5,7 @@ import { ActionType } from '../action-types';
 
 import {
   ApiResponse,
+  App,
   Bookmark,
   Category,
   Config,
@@ -435,3 +436,61 @@ export const sortBookmarks =
       console.log(err);
     }
   };
+
+export const getHomePageData = () => async (dispatch: any) => {
+  // 1. Set loading states to true
+  dispatch({ type: ActionType.getApps });
+  dispatch({ type: ActionType.getCategories });
+
+  try {
+    // 2. Fetch all data concurrently
+    const [appsResponse, appCategoriesResponse, bookmarkCategoriesResponse] =
+      await Promise.all([
+        axios.get<ApiResponse<App[]>>('/api/apps', { headers: applyAuth() }),
+        axios.get<ApiResponse<Category[]>>('/api/categories?section=apps', {
+          headers: applyAuth(),
+        }),
+        axios.get<ApiResponse<Category[]>>('/api/categories?section=bookmarks', {
+          headers: applyAuth(),
+        }),
+      ]);
+
+    // 3. Get the data, ensuring we have arrays
+    const apps = appsResponse.data.data ?? [];
+    const appCategories = appCategoriesResponse.data.data ?? [];
+    const bookmarkCategories = bookmarkCategoriesResponse.data.data ?? [];
+
+    // 4. Safely merge categories, preventing ID conflicts.
+    // This mimics the logic from the original getCategoriesForSection action.
+    const allCategories = [...bookmarkCategories];
+    const bookmarkIds = new Set(bookmarkCategories.map((c) => c.id));
+    
+    appCategories.forEach((appCat) => {
+      if (!bookmarkIds.has(appCat.id)) {
+        allCategories.push(appCat);
+      }
+    });
+
+    // 5. Dispatch success actions with the complete and clean data
+    dispatch({
+      type: ActionType.getAppsSuccess,
+      payload: apps,
+    });
+
+    dispatch({
+      type: ActionType.getCategoriesSuccess,
+      payload: allCategories,
+    });
+  } catch (err: any) {
+    // 6. Handle any errors
+    console.error("Failed to get home page data:", err);
+    dispatch({
+      type: ActionType.getAppsError,
+      payload: err?.message || 'Failed to fetch apps',
+    });
+    dispatch({
+      type: ActionType.getCategoriesError,
+      payload: err?.message || 'Failed to fetch categories',
+    });
+  }
+};
