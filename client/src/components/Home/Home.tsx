@@ -26,6 +26,7 @@ import { Header } from './Header/Header';
 import { escapeRegex } from '../../utility';
 
 export const Home = (): JSX.Element => {
+  const [isPageLoading, setIsPageLoading] = useState(true);
   const {
     apps: { apps, loading: appsLoading },
     // NOTE: there is ONE categories list in the bookmarks slice; it contains both sections.
@@ -35,7 +36,7 @@ export const Home = (): JSX.Element => {
   } = useSelector((state: State) => state);
 
   const dispatch = useDispatch();
-  const { getApps, getCategories } = bindActionCreators(actionCreators, dispatch);
+  const { getApps, getCategoriesForSection } = bindActionCreators(actionCreators, dispatch);
 
   // Local search query
   const [localSearch, setLocalSearch] = useState<null | string>(null);
@@ -44,10 +45,21 @@ export const Home = (): JSX.Element => {
 
   // Unconditionally load apps & categories on first mount
   useEffect(() => {
-    getApps();
-    getCategories(); // returns both sections; we’ll filter below
+    const fetchData = async () => {
+      setIsPageLoading(true);
+  
+      // Run these sequentially to prevent the race condition in the thunk
+      await getApps();
+      await getCategoriesForSection('apps');
+      await getCategoriesForSection('bookmarks'); // This now runs AFTER 'apps' is in the state
+  
+      setIsPageLoading(false);
+    };
+  
+    fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
 
   // Derive app-only categories for grouping Applications
   const appCategories = useMemo(
@@ -108,7 +120,7 @@ export const Home = (): JSX.Element => {
       {!config.hideApps && (isAuthenticated || apps.some((a) => a.isPinned)) ? (
         <Fragment>
           <SectionHeadline title="Applications" link="/applications" />
-          {appsLoading || bookmarksLoading ? (
+	  {isPageLoading ? (
             // wait for BOTH slices so we can group by category on first paint
             <Spinner />
           ) : appCategories.length === 0 ? (
