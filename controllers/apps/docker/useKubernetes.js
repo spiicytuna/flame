@@ -1,10 +1,11 @@
 const App = require('../../../models/App');
-const k8s = require('@kubernetes/client-node');
 const Logger = require('../../../utils/Logger');
 const logger = new Logger();
 const loadConfig = require('../../../utils/loadConfig');
 
 const useKubernetes = async (apps) => {
+  const k8s = await import('@kubernetes/client-node');
+
   const { useOrdering: orderType, unpinStoppedApps } = await loadConfig();
 
   let ingresses = null;
