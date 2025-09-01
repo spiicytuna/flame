@@ -40,21 +40,29 @@ export enum ContentType {
 export const Bookmarks = (props: Props): JSX.Element => {
   // Get Redux state
   const {
-    bookmarks: { loading, categories, categoryInEdit },
+    bookmarks: { loading, categories: allCategories, categoryInEdit },
     auth: { isAuthenticated },
   } = useSelector((state: State) => state);
-
+  
+  // Create a new list that is filtered for ONLY bookmark categories
+  const categories = (allCategories || []).filter(
+    (category) => category.section === 'bookmarks'
+  );
+  
   // Get Redux action creators
   const dispatch = useDispatch();
-  const { getCategories, setEditCategory, setEditBookmark } =
+  const { getCategoriesForSection, setEditCategory, setEditBookmark } =
     bindActionCreators(actionCreators, dispatch);
-
-  // Load categories if array is empty
+  
+  // Load bookmark categories if they haven't been loaded
   useEffect(() => {
-    if (!categories.length) {
-      getCategories();
+    // We check the unfiltered list to see if *any* categories have been loaded
+    if (!allCategories.length) {
+      getCategoriesForSection('bookmarks');
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+  
 
   // Form
   const [modalIsOpen, setModalIsOpen] = useState(false);
