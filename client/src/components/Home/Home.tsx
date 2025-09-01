@@ -118,15 +118,18 @@ export const Home = (): JSX.Element => {
 
       {/* Applications */}
       {!config.hideApps && (isAuthenticated || apps.some((a) => a.isPinned)) ? (
-        <Fragment>
+	<Fragment>
           <SectionHeadline title="Applications" link="/applications" />
-	  {isPageLoading ? (
-            // wait for BOTH slices so we can group by category on first paint
+          {isPageLoading ? (
             <Spinner />
+          ) : appSearchResult ? (
+            // If there are search results, display them in a single grid
+            <AppGrid apps={appSearchResult} searching={!!localSearch} />
           ) : appCategories.length === 0 ? (
-            // Fallback to previous A→Z if there truly are no app categories
+            // Otherwise, fallback to previous A→Z if there are no app categories
             <AppGrid apps={apps} searching={!!localSearch} />
           ) : (
+            // Otherwise, display the normal categorized view
             <>
               {appCategories
                 .slice()
@@ -153,11 +156,12 @@ export const Home = (): JSX.Element => {
               )}
             </>
           )}
-      
+          
           <div className={classes.HomeSpace}></div>
         </Fragment>
-      ) : null}
+      ) : null}     
       
+ 
       {/* Bookmarks */}
       {!config.hideCategories && (isAuthenticated || categories.some((c) => c.isPinned)) ? (
         <Fragment>
