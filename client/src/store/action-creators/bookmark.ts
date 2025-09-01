@@ -51,6 +51,42 @@ export const getCategories =
     }
   };
 
+export const getCategoriesForSection =
+  (section: 'bookmarks' | 'apps') =>
+  async (dispatch: any, getState: any) => {
+    dispatch({ type: ActionType.getCategories });
+
+    try {
+      const res = await axios.get<ApiResponse<Category[]>>(
+        `/api/categories?section=${section}`,
+        { headers: applyAuth() }
+      );
+
+      const incoming = res.data.data ?? [];
+      const state = getState();
+      const current: Category[] = state?.bookmarks?.categories ?? [];
+
+      // Remove anything from the same section (and also dedupe by id just in case),
+      // then append the fresh incoming set.
+      const incomingIds = new Set(incoming.map((c) => c.id));
+      const kept = current.filter(
+        (c: any) => c.section !== section && !incomingIds.has(c.id)
+      );
+
+      const merged = [...kept, ...incoming];
+
+      dispatch({
+        type: ActionType.getCategoriesSuccess,
+        payload: merged,
+      });
+    } catch (err: any) {
+      dispatch({
+        type: ActionType.getCategoriesError,
+        payload: err?.message || 'Failed to fetch categories',
+      });
+    }
+  };
+
 export const addCategory =
   (formData: NewCategory) => async (dispatch: Dispatch<AddCategoryAction>) => {
     try {

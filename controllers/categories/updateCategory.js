@@ -19,7 +19,13 @@ const updateCategory = asyncWrapper(async (req, res, next) => {
     );
   }
 
-  category = await category.update({ ...req.body });
+  const updateData = {
+    name: req.body.name ?? category.name,
+    isPinned: req.body.isPinned ?? category.isPinned,
+    section: req.body.section ?? category.section,
+  };
+  
+  category = await category.update(updateData);
 
   res.status(200).json({
     success: true,

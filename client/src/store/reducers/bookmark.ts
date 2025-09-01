@@ -51,10 +51,14 @@ export const bookmarksReducer = (
       const categoryIdx = state.categories.findIndex(
         (category) => category.id === action.payload.categoryId
       );
+      if (categoryIdx < 0) return state;
+
+      const baseCategory = state.categories[categoryIdx];
+      const current = baseCategory.bookmarks ?? [];
 
       const targetCategory = {
-        ...state.categories[categoryIdx],
-        bookmarks: [...state.categories[categoryIdx].bookmarks, action.payload],
+        ...baseCategory,
+        bookmarks: [...current, action.payload],
       };
 
       return {
@@ -72,6 +76,9 @@ export const bookmarksReducer = (
       const categoryIdx = state.categories.findIndex(
         (category) => category.id === action.payload.id
       );
+      if (categoryIdx < 0) return state;
+
+      const current = state.categories[categoryIdx].bookmarks ?? [];
 
       return {
         ...state,
@@ -79,7 +86,7 @@ export const bookmarksReducer = (
           ...state.categories.slice(0, categoryIdx),
           {
             ...action.payload,
-            bookmarks: [...state.categories[categoryIdx].bookmarks],
+            bookmarks: [...current],
           },
           ...state.categories.slice(categoryIdx + 1),
         ],
@@ -90,6 +97,7 @@ export const bookmarksReducer = (
       const categoryIdx = state.categories.findIndex(
         (category) => category.id === action.payload
       );
+      if (categoryIdx < 0) return state;
 
       return {
         ...state,
@@ -104,6 +112,9 @@ export const bookmarksReducer = (
       const categoryIdx = state.categories.findIndex(
         (category) => category.id === action.payload.id
       );
+      if (categoryIdx < 0) return state;
+
+      const current = state.categories[categoryIdx].bookmarks ?? [];
 
       return {
         ...state,
@@ -111,7 +122,7 @@ export const bookmarksReducer = (
           ...state.categories.slice(0, categoryIdx),
           {
             ...action.payload,
-            bookmarks: [...state.categories[categoryIdx].bookmarks],
+            bookmarks: [...current],
           },
           ...state.categories.slice(categoryIdx + 1),
         ],
@@ -122,10 +133,14 @@ export const bookmarksReducer = (
       const categoryIdx = state.categories.findIndex(
         (category) => category.id === action.payload.categoryId
       );
+      if (categoryIdx < 0) return state;
+
+      const baseCategory = state.categories[categoryIdx];
+      const current = baseCategory.bookmarks ?? [];
 
       const targetCategory = {
-        ...state.categories[categoryIdx],
-        bookmarks: state.categories[categoryIdx].bookmarks.filter(
+        ...baseCategory,
+        bookmarks: current.filter(
           (bookmark) => bookmark.id !== action.payload.bookmarkId
         ),
       };
@@ -145,17 +160,22 @@ export const bookmarksReducer = (
       const categoryIdx = state.categories.findIndex(
         (category) => category.id === action.payload.categoryId
       );
+      if (categoryIdx < 0) return state;
 
-      const bookmarkIdx = state.categories[categoryIdx].bookmarks.findIndex(
+      const baseCategory = state.categories[categoryIdx];
+      const current = baseCategory.bookmarks ?? [];
+
+      const bookmarkIdx = current.findIndex(
         (bookmark) => bookmark.id === action.payload.id
       );
+      if (bookmarkIdx < 0) return state;
 
       const targetCategory = {
-        ...state.categories[categoryIdx],
+        ...baseCategory,
         bookmarks: [
-          ...state.categories[categoryIdx].bookmarks.slice(0, bookmarkIdx),
+          ...current.slice(0, bookmarkIdx),
           action.payload,
-          ...state.categories[categoryIdx].bookmarks.slice(bookmarkIdx + 1),
+          ...current.slice(bookmarkIdx + 1),
         ],
       };
 
@@ -171,9 +191,19 @@ export const bookmarksReducer = (
     }
 
     case ActionType.sortCategories: {
+      // sortData<T> expects T to have orderId: number
+      type SortableCategory = Category & { orderId: number };
+      const sortable: SortableCategory[] = state.categories.map((c) => ({
+        ...c,
+        orderId: c.orderId ?? 0,
+      })) as SortableCategory[];
+
+      const sorted = sortData<SortableCategory>(sortable, action.payload);
+
       return {
         ...state,
-        categories: sortData<Category>(state.categories, action.payload),
+        // cast back to Category[]; we only coerced orderId for sorting
+        categories: sorted as unknown as Category[],
       };
     }
 
@@ -202,6 +232,7 @@ export const bookmarksReducer = (
       const categoryIdx = state.categories.findIndex(
         (category) => category.id === action.payload.categoryId
       );
+      if (categoryIdx < 0) return state;
 
       return {
         ...state,
@@ -209,7 +240,7 @@ export const bookmarksReducer = (
           ...state.categories.slice(0, categoryIdx),
           {
             ...state.categories[categoryIdx],
-            bookmarks: action.payload.bookmarks,
+            bookmarks: action.payload.bookmarks ?? [],
           },
           ...state.categories.slice(categoryIdx + 1),
         ],
@@ -220,9 +251,11 @@ export const bookmarksReducer = (
       const categoryIdx = state.categories.findIndex(
         (category) => category.id === action.payload.categoryId
       );
+      if (categoryIdx < 0) return state;
 
+      const current = state.categories[categoryIdx].bookmarks ?? [];
       const sortedBookmarks = sortData<Bookmark>(
-        state.categories[categoryIdx].bookmarks,
+        current,
         action.payload.orderType
       );
 

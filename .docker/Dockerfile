@@ -1,4 +1,4 @@
-FROM node:16 AS builder
+FROM node:16-alpine AS builder
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ ENV PASSWORD=flame_password
 RUN mkdir -p /app/data /app/log /app/public \
     && chown -R node:node /app/data /app/log /app/public
 
-USER node
+USER root
 
 EXPOSE 5005
 
