@@ -31,7 +31,7 @@ export const BookmarkCard = (props: Props): JSX.Element => {
   const { setEditCategory } = bindActionCreators(actionCreators, dispatch);
 
   return (
-    <div className={classes.BookmarkCard}>
+    <div className={`${classes.BookmarkCard} ${fromHomepage ? classes.homepage : ''}`}> 
       <h3
         className={
           fromHomepage || !isAuthenticated ? '' : classes.BookmarkHeader
