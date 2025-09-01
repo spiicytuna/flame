@@ -139,7 +139,7 @@ export const Home = (): JSX.Element => {
                   if (list.length === 0) return null;
                   return (
                     <div key={cat.id} style={{ marginBottom: '2rem' }}>
-                      <h2 style={{ margin: '0 0 0.5rem' }}>{cat.name}</h2>
+                      <h2 style={{ margin: '0 0 0.5rem', fontSize: '17px', fontWeight: 600, color: 'var(--color-accent)', textTransform: 'uppercase' }}>{cat.name}</h2>
                       <AppGrid apps={list} searching={!!localSearch} />
                     </div>
                   );
@@ -147,7 +147,7 @@ export const Home = (): JSX.Element => {
       
               {(apps || []).some((a) => a.categoryId == null) && (
                 <div style={{ marginBottom: '2rem' }}>
-                  <h2 style={{ margin: '0 0 0.5rem' }}>Uncategorized</h2>
+                  <h2 style={{ margin: '0 0 0.5rem', fontSize: '17px', fontWeight: 600, color: 'var(--color-accent)', textTransform: 'uppercase' }}>Uncategorized</h2>
                   <AppGrid
                     apps={(apps || []).filter((a) => a.categoryId == null)}
                     searching={!!localSearch}
