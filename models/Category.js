@@ -22,9 +22,21 @@ const Category = sequelize.define(
       allowNull: true,
       defaultValue: 1,
     },
+    section: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'bookmarks', // 'apps' | 'bookmarks'
+      validate: {
+        isIn: [['apps', 'bookmarks']],
+      },
+    },
   },
   {
     tableName: 'categories',
+    indexes: [
+      // mirrors: CREATE UNIQUE INDEX unique_name_section ON categories (name, section);
+      { unique: true, fields: ['name', 'section'] },
+    ],
   }
 );
 

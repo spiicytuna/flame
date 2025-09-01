@@ -8,8 +8,11 @@ const loadConfig = require('../../utils/loadConfig');
 const createCategory = asyncWrapper(async (req, res, next) => {
   const { pinCategoriesByDefault: pinCategories } = await loadConfig();
 
+  const { section = 'bookmarks', ...rest } = req.body;
+
   const category = await Category.create({
-    ...req.body,
+    ...rest,
+    section,
     isPinned: pinCategories,
   });
 

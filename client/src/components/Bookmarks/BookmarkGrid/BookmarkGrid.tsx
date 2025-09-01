@@ -25,7 +25,7 @@ export const BookmarkGrid = (props: Props): JSX.Element => {
   let bookmarks: JSX.Element;
 
   if (categories.length) {
-    if (searching && !categories[0].bookmarks.length) {
+    if (searching && (categories[0].bookmarks ?? []).length === 0) {
       bookmarks = <Message>No bookmarks match your search criteria</Message>;
     } else {
       bookmarks = (

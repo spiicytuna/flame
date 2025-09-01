@@ -9,10 +9,17 @@ export const newAppTemplate: NewApp = {
 };
 
 export const appTemplate: App = {
-  ...newAppTemplate,
-  isPinned: false,
-  orderId: 0,
-  id: -1,
+  // base fields
+  id: 0,
   createdAt: new Date(),
   updatedAt: new Date(),
+
+  ...newAppTemplate,
+
+  // required on full App
+  categoryId: 0,        // temporary placeholder; real value comes from form/API
+
+  // App-only fields
+  isPinned: false,
+  orderId: 0,
 };
