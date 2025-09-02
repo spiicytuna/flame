@@ -56,3 +56,7 @@ a {
   color: var(--color-primary);
   text-decoration: none;
 }
+
+a:hover {
+  color: var(--color-accent);
+}

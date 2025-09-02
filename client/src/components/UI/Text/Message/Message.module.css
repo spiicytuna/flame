@@ -20,6 +20,9 @@
 .messageCenter span {
   color: var(--color-accent);
 }
+.messageCenter a:hover {
+  color: var(--color-primary);
+}
 
 .messageCenter a:hover {
   cursor: pointer;

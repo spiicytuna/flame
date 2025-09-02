@@ -117,6 +117,19 @@ export const Apps = (props: Props): JSX.Element => {
     setCategoryModalIsOpen(true);
   };
 
+  const isEditing = showCategoryTable || categoryInEdit;
+
+  const goBackElement = isEditing ? (
+    <span className={classes.GoBack} onClick={() => {
+      setShowCategoryTable(false);
+      setCategoryInEdit(null);
+    }}>
+      Go back
+    </span>
+  ) : (
+    <Link to="/">Go back</Link>
+  );
+
   return (
     <Container>
       {/* App create/update modal */}
@@ -132,7 +145,7 @@ export const Apps = (props: Props): JSX.Element => {
         />
       </Modal>
 
-      <Headline title="All Applications" subtitle={<Link to="/">Go back</Link>} />
+      <Headline title="All Applications" subtitle={goBackElement} />
 
       {isAuthenticated && (
         <div className={classes.ActionsContainer}>
