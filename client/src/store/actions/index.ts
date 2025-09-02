@@ -35,17 +35,9 @@ import {
 } from './app';
 
 import {
-  GetCategoriesAction,
-  AddCategoryAction,
-  PinCategoryAction,
-  DeleteCategoryAction,
-  UpdateCategoryAction,
-  SortCategoriesAction,
-  ReorderCategoriesAction,
   AddBookmarkAction,
   DeleteBookmarkAction,
   UpdateBookmarkAction,
-  SetEditCategoryAction,
   SetEditBookmarkAction,
   ReorderBookmarksAction,
   SortBookmarksAction,
@@ -57,6 +49,8 @@ import {
   LoginAction,
   LogoutAction,
 } from './auth';
+
+import { CategoryAction } from './categoryActions';
 
 export type Action =
   // Theme
@@ -86,14 +80,7 @@ export type Action =
   | SortAppsAction
   | SetEditAppAction
   // Categories
-  | GetCategoriesAction<any>
-  | AddCategoryAction
-  | PinCategoryAction
-  | DeleteCategoryAction
-  | UpdateCategoryAction
-  | SortCategoriesAction
-  | ReorderCategoriesAction
-  | SetEditCategoryAction
+  | CategoryAction
   // Bookmarks
   | AddBookmarkAction
   | DeleteBookmarkAction

@@ -21,7 +21,7 @@ import { Message, Table } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
 
 // Thunk to load only apps categories
-import { getCategoriesForSection } from '../../../store/action-creators/bookmark';
+import { getCategoriesForSection } from '../../../store/reducers/category';
 
 interface Props {
   openFormForUpdating: (category: Category) => void;
@@ -30,7 +30,7 @@ interface Props {
 export const AppCategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
   const {
     config: { config },
-    bookmarks: { categories: allCategories },
+    categories: { categories: allCategories },
   } = useSelector((state: State) => state);
   
   // Create a new list that is filtered for ONLY app categories
