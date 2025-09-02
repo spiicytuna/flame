@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 // Redux
+import { getCategoriesForSection } from '../../store/reducers/category'
 import { useDispatch, useSelector } from 'react-redux';
 import { State } from '../../store/reducers';
 import { bindActionCreators } from 'redux';
@@ -40,7 +41,7 @@ export enum ContentType {
 export const Bookmarks = (props: Props): JSX.Element => {
   // Get Redux state
   const {
-    bookmarks: { loading, categories: allCategories, categoryInEdit },
+    categories: { loading, categories: allCategories, categoryInEdit },
     auth: { isAuthenticated },
   } = useSelector((state: State) => state);
   
@@ -51,17 +52,16 @@ export const Bookmarks = (props: Props): JSX.Element => {
   
   // Get Redux action creators
   const dispatch = useDispatch();
-  const { getCategoriesForSection, setEditCategory, setEditBookmark } =
-    bindActionCreators(actionCreators, dispatch);
-  
+  const { setEditCategory, setEditBookmark } =
+    bindActionCreators(actionCreators, dispatch);  
+
   // Load bookmark categories if they haven't been loaded
   useEffect(() => {
-    // We check the unfiltered list to see if *any* categories have been loaded
+    // check the unfiltered list to see if *any* categories have been loaded
     if (!allCategories.length) {
-      getCategoriesForSection('bookmarks');
+      dispatch(getCategoriesForSection('bookmarks') as any);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [allCategories, dispatch]);
   
 
   // Form

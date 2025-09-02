@@ -25,7 +25,7 @@ import { actionCreators } from '../../../store';
 export const GeneralSettings = (): JSX.Element => {
   const {
     config: { loading, customQueries, config },
-    bookmarks: { categories },
+    categories: { categories },
   } = useSelector((state: State) => state);
 
   const dispatch = useDispatch();

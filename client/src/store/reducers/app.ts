@@ -1,6 +1,6 @@
 import { ActionType } from '../action-types';
 import { Action } from '../actions/index';
-import { App } from '../../interfaces';
+import { App, Category } from '../../interfaces';
 import { sortData } from '../../utility';
 
 interface AppsState {
@@ -22,19 +22,20 @@ export const appsReducer = (
   action: Action
 ): AppsState => {
   switch (action.type) {
-    case ActionType.getApps: {
-      return {
-        ...state,
-        loading: true,
-        errors: undefined,
-      };
-    }
-
     case ActionType.getAppsSuccess: {
       return {
         ...state,
         loading: false,
         apps: action.payload || [],
+      };
+    }
+    
+    case ActionType.fetchHomepageDataSuccess: {
+      const payload = action.payload as { apps: App[], categories: Category[] };
+      return {
+        ...state,
+        loading: false,
+        apps: payload.apps,
       };
     }
 

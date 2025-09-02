@@ -8,9 +8,6 @@ import { bindActionCreators } from 'redux';
 import { State } from '../../store/reducers';
 import { actionCreators } from '../../store';
 
-// Import the bookmarks-specific action directly
-import { getCategoriesForSection } from '../../store/action-creators/bookmark';
-
 // Types
 import type { App as AppModel, Category } from '../../interfaces';
 
@@ -27,6 +24,7 @@ import { AppTable } from './AppTable/AppTable';
 
 // Category modal + table (for Applications)
 import { CategoryForm } from './CategoryForm/CategoryForm';
+import { getCategoriesForSection } from '../../store/reducers/category';
 import { AppCategoryTable } from './CategoryTable/CategoryTable';
 
 interface Props {
@@ -36,10 +34,9 @@ interface Props {
 export const Apps = (props: Props): JSX.Element => {
   // Redux state
   const {
-    apps: { apps, loading },
+    apps: { apps },
     auth: { isAuthenticated },
-    bookmarks: { categories: allCategories }, // Gets the full list of categories
-    categories: { categoryInEdit: prefilledCategory }, // Gets the specific category for
+    categories: { categories: allCategories, categoryInEdit: prefilledCategory },
   } = useSelector((state: State) => state);
 
   // Bind app actions
@@ -47,6 +44,7 @@ export const Apps = (props: Props): JSX.Element => {
   const { getApps, setEditApp } = bindActionCreators(actionCreators, dispatch);
 
   // Local UI state
+  const [isAppsLoading, setIsAppsLoading] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false); // app form
   const [categoryInEdit, setCategoryInEdit] = useState<Category | null>(null);
   const [categoryModalIsOpen, setCategoryModalIsOpen] = useState(false);
@@ -55,8 +53,15 @@ export const Apps = (props: Props): JSX.Element => {
 
   // Load apps if array is empty
   useEffect(() => {
-    if (!apps.length) getApps();
-  }, [apps.length, getApps]);
+    const loadApps = async () => {
+      if (!apps.length) {
+        setIsAppsLoading(true);
+        await dispatch(getApps() as any);
+        setIsAppsLoading(false);
+      }
+    }
+    loadApps();
+  }, [apps.length, dispatch]);
 
   // Reset edit UIs when auth changes
   useEffect(() => {
@@ -68,7 +73,7 @@ export const Apps = (props: Props): JSX.Element => {
     }
   }, [isAuthenticated]);
 
-  // Fetch ONLY the 'apps' categories into the bookmarks slice
+  // Fetch ONLY the 'apps' categories into the categories slice
   useEffect(() => {
     (dispatch as any)(getCategoriesForSection('apps'));
   }, [dispatch]);
@@ -154,7 +159,7 @@ export const Apps = (props: Props): JSX.Element => {
 
       {isAuthenticated && !showCategoryTable && !categoryInEdit && appCategories.length > 0 ? (
         <Message isPrimary={false}>
-          Click on category name to edit its bookmarks
+          Click on category name to edit its applications
         </Message>
       ) : (
         <></>
@@ -162,7 +167,7 @@ export const Apps = (props: Props): JSX.Element => {
 
       {/* Main body */}
       <div className={classes.Apps}>
-        {loading ? (
+        {isAppsLoading ? (
           <Spinner />
         ) : showCategoryTable ? (
           <AppCategoryTable openFormForUpdating={openFormForUpdatingCategory} />
