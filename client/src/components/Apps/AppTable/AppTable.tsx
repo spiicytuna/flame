@@ -14,21 +14,32 @@ import { bindActionCreators } from 'redux';
 import { actionCreators } from '../../../store';
 
 // Typescript
-import { App } from '../../../interfaces';
+import type { App, App as AppModel, Category } from '../../../interfaces';
 
 // Other
-import { Message, Table } from '../../UI';
+import { Message, Table, ActionButton } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
 
 interface Props {
-  openFormForUpdating: (app: App) => void;
+  category: Category;
+  openFormForUpdating: (app: AppModel) => void;
+  onFinishEditing: () => void;
 }
 
 export const AppTable = (props: Props): JSX.Element => {
   const {
-    apps: { apps },
+    apps: { apps: allApps }, // Renamed to allApps for clarity
     config: { config },
   } = useSelector((state: State) => state);
+
+  // This is the new filtering logic
+  const appsToShow = allApps.filter(app => {
+    // Handle the special "Uncategorized" case
+    if (props.category.id === -1) {
+      return app.categoryId === null;
+    }
+    return app.categoryId === props.category.id;
+  });
 
   const dispatch = useDispatch();
   const { pinApp, deleteApp, reorderApps, createNotification, updateApp } =
@@ -36,10 +47,10 @@ export const AppTable = (props: Props): JSX.Element => {
 
   const [localApps, setLocalApps] = useState<App[]>([]);
 
-  // Copy apps array
+  // Update useEffect to use the filtered list
   useEffect(() => {
-    setLocalApps([...apps]);
-  }, [apps]);
+    setLocalApps([...appsToShow]);
+  }, [appsToShow]);
 
   const dragEndHanlder = (result: DropResult): void => {
     if (config.useOrdering !== 'orderId') {
@@ -72,23 +83,32 @@ export const AppTable = (props: Props): JSX.Element => {
   };
 
   const updateAppHandler = (id: number) => {
-    const app = apps.find((a) => a.id === id) as App;
+    const app = allApps.find((a) => a.id === id) as App;
     props.openFormForUpdating(app);
   };
 
   const pinAppHandler = (id: number) => {
-    const app = apps.find((a) => a.id === id) as App;
+    const app = allApps.find((a) => a.id === id) as App;
     pinApp(app);
   };
 
   const changeAppVisibiltyHandler = (id: number) => {
-    const app = apps.find((a) => a.id === id) as App;
+    const app = allApps.find((a) => a.id === id) as App;
     updateApp(id, { ...app, isPublic: !app.isPublic });
   };
 
   return (
     <Fragment>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <h2 style={{ color: 'var(--color-primary)' }}>Editing: {props.category.name}</h2>
+        <ActionButton
+          name="Done Editing"
+          icon="mdiPencilOff"
+          handler={props.onFinishEditing}
+        />
+      </div>
       <Message isPrimary={false}>
+
         {config.useOrdering === 'orderId' ? (
           <p>You can drag and drop single rows to reorder application</p>
         ) : (

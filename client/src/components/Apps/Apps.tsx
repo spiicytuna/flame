@@ -18,7 +18,7 @@ import type { App as AppModel, Category } from '../../interfaces';
 import classes from './Apps.module.css';
 
 // UI
-import { Headline, Spinner, ActionButton, Modal, Container } from '../UI';
+import { Headline, Spinner, ActionButton, Modal, Container, Message } from '../UI';
 
 // Subcomponents
 import { AppGrid } from './AppGrid/AppGrid';
@@ -38,8 +38,8 @@ export const Apps = (props: Props): JSX.Element => {
   const {
     apps: { apps, loading },
     auth: { isAuthenticated },
-    bookmarks: { categories: allCategories }, // we store categories here
-    categories: { categoryInEdit }, // only for edit modal prefill
+    bookmarks: { categories: allCategories }, // Gets the full list of categories
+    categories: { categoryInEdit: prefilledCategory }, // Gets the specific category for
   } = useSelector((state: State) => state);
 
   // Bind app actions
@@ -48,7 +48,7 @@ export const Apps = (props: Props): JSX.Element => {
 
   // Local UI state
   const [modalIsOpen, setModalIsOpen] = useState(false); // app form
-  const [showAppTable, setShowAppTable] = useState(false); // edit apps
+  const [categoryInEdit, setCategoryInEdit] = useState<Category | null>(null);
   const [categoryModalIsOpen, setCategoryModalIsOpen] = useState(false);
   const [isInCategoryUpdate, setIsInCategoryUpdate] = useState(false);
   const [showCategoryTable, setShowCategoryTable] = useState(false);
@@ -61,7 +61,7 @@ export const Apps = (props: Props): JSX.Element => {
   // Reset edit UIs when auth changes
   useEffect(() => {
     if (!isAuthenticated) {
-      setShowAppTable(false);
+      setCategoryInEdit(null);
       setModalIsOpen(false);
       setShowCategoryTable(false);
       setCategoryModalIsOpen(false);
@@ -123,7 +123,7 @@ export const Apps = (props: Props): JSX.Element => {
       <Modal isOpen={categoryModalIsOpen} setIsOpen={toggleCategoryModal}>
         <CategoryForm
           modalHandler={toggleCategoryModal}
-          category={isInCategoryUpdate ? categoryInEdit ?? undefined : undefined}
+	  category={isInCategoryUpdate ? prefilledCategory ?? undefined : undefined}
         />
       </Modal>
 
@@ -132,19 +132,12 @@ export const Apps = (props: Props): JSX.Element => {
       {isAuthenticated && (
         <div className={classes.ActionsContainer}>
           <ActionButton
-            name={showAppTable ? 'Done Editing Apps' : 'Edit Applications'}
-            icon="mdiPencil"
-            handler={() => {
-              setShowAppTable((v) => !v);
-              if (!showAppTable) setShowCategoryTable(false); // hide the other panel
-            }}
-          />
-          <ActionButton
             name={showCategoryTable ? 'Done Editing Categories' : 'Edit Categories'}
             icon="mdiPencil"
             handler={() => {
               setShowCategoryTable((v) => !v);
-              if (!showCategoryTable) setShowAppTable(false); // hide the other panel
+//              if (!showCategoryTable) setShowAppTable(false); // hide the other panel
+	      if (!showCategoryTable) setCategoryInEdit(null); // hide other panel
             }}
           />
           <ActionButton name="Add Application" icon="mdiPlusBox" handler={openCreateApp} />
@@ -159,14 +152,26 @@ export const Apps = (props: Props): JSX.Element => {
         </div>
       )}
 
+      {isAuthenticated && !showCategoryTable && !categoryInEdit && appCategories.length > 0 ? (
+        <Message isPrimary={false}>
+          Click on category name to edit its bookmarks
+        </Message>
+      ) : (
+        <></>
+      )}
+
       {/* Main body */}
       <div className={classes.Apps}>
         {loading ? (
           <Spinner />
         ) : showCategoryTable ? (
           <AppCategoryTable openFormForUpdating={openFormForUpdatingCategory} />
-        ) : showAppTable ? (
-          <AppTable openFormForUpdating={openFormForUpdating} />
+        ) : categoryInEdit ? (
+          <AppTable
+            category={categoryInEdit}
+            openFormForUpdating={openFormForUpdating}
+            onFinishEditing={() => setCategoryInEdit(null)}
+          />
         ) : (
           // ---------- grouped grid with fallback ----------
           <>
@@ -182,7 +187,12 @@ export const Apps = (props: Props): JSX.Element => {
                     if (list.length === 0) return null;
                     return (
                       <div key={cat.id} style={{ marginBottom: '2rem' }}>
-                        <h2 style={{ margin: '0 0 0.5rem' }}>{cat.name}</h2>
+  		        <h2
+		          style={{ margin: '0 0 0.5rem', cursor: 'pointer' }}
+		          onClick={() => setCategoryInEdit(cat)}
+		        >
+		          {cat.name}
+		        </h2>
                         <AppGrid apps={list} searching={props.searching} />
                       </div>
                     );
@@ -190,7 +200,22 @@ export const Apps = (props: Props): JSX.Element => {
 
                 {(apps || []).some((a) => a.categoryId == null) && (
                   <div style={{ marginBottom: '2rem' }}>
-                    <h2 style={{ margin: '0 0 0.5rem' }}>Uncategorized</h2>
+		    <h2
+		      style={{ margin: '0 0 0.5rem', cursor: 'pointer' }}
+		      onClick={() =>
+		        setCategoryInEdit({
+		          id: -1, 
+		          name: 'Uncategorized',
+		          section: 'apps',
+		          isPinned: false,
+		          isPublic: true,
+		          createdAt: new Date(),
+		          updatedAt: new Date(),
+		        })
+		      }
+		    >
+		      Uncategorized
+		    </h2>
                     <AppGrid
                       apps={(apps || []).filter((a) => a.categoryId == null)}
                       searching={props.searching}
