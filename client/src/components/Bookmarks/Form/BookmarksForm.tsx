@@ -27,7 +27,7 @@ export const BookmarksForm = ({
   bookmark,
   modalHandler,
 }: Props): JSX.Element => {
-  const { categories: allCategories } = useSelector((state: State) => state.bookmarks);
+  const { categories: allCategories } = useSelector((state: State) => state.categories);
   const categories = (allCategories || []).filter(
     (category) => category.section === 'bookmarks'
   );

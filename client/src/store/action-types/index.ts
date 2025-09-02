@@ -14,6 +14,7 @@ export enum ActionType {
   deleteQuery = 'DELETE_QUERY',
   fetchQueries = 'FETCH_QUERIES',
   updateQuery = 'UPDATE_QUERY',
+  fetchHomepageDataSuccess = 'FETCH_HOMEPAGE_DATA_SUCCESS',
   // NOTIFICATIONS
   createNotification = 'CREATE_NOTIFICATION',
   clearNotification = 'CLEAR_NOTIFICATION',
