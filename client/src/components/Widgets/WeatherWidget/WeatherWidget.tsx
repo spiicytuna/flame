@@ -26,20 +26,32 @@ export const WeatherWidget = (): JSX.Element => {
 
   // Initial request to get data
   useEffect(() => {
-    axios
-      .get<ApiResponse<Weather[]>>('/api/weather')
-      .then((data) => {
-        const weatherData = data.data.data[0];
-        if (weatherData) {
-          setWeather(weatherData);
-        }
-        setIsLoading(false);
-      })
-      .catch((err) => console.log(err));
-  }, []);
+    // Only make the API call if there is a key
+    if (config.WEATHER_API_KEY) {
+      axios
+        .get<ApiResponse<Weather[]>>('/api/weather')
+        .then((data) => {
+          const weatherData = data.data.data[0];
+          if (weatherData) {
+            setWeather(weatherData);
+          }
+        })
+        .catch((err) => console.log(err))
+        .finally(() => setIsLoading(false)); // Always stop loading
+    } else {
+      // If no key is present => do nothing
+      setIsLoading(false);
+    }
+    // Re-run if API key is added, updated, or removed
+  }, [config.WEATHER_API_KEY]);
 
-  // Open socket for data updates
+  // socket for updates
   useEffect(() => {
+    // guard the socket connection.
+    if (!config.WEATHER_API_KEY) {
+      return;
+    }
+
     const socketProtocol =
       document.location.protocol === 'http:' ? 'ws:' : 'wss:';
     const socketAddress = `${socketProtocol}//${window.location.host}/socket`;
@@ -54,7 +66,7 @@ export const WeatherWidget = (): JSX.Element => {
     };
 
     return () => webSocketClient.close();
-  }, []);
+  }, [config.WEATHER_API_KEY]); // depends on API key
 
   function formatWeatherData(type: string, weather: Weather): string {
   switch (type) {
@@ -79,38 +91,37 @@ export const WeatherWidget = (): JSX.Element => {
 
   return (
     <div className={classes.WeatherWidget}>
-      {configLoading ||
-        (config.WEATHER_API_KEY && weather.id > 0 && (
-          <Fragment>
-            <div className={classes.WeatherIconBlock}>
-              <div className={classes.WeatherIcon}>
-                <WeatherIcon
-                  weatherStatusCode={weather.conditionCode}
-                  isDay={weather.isDay}
-		  className={classes.WeatherIcon}
-                />
-              </div>
-              <div className={classes.WeatherLocation}>
-                <span>{weather.location}</span>
-              </div>
+      {config.WEATHER_API_KEY && !isLoading && weather.id > 0 && (
+        <Fragment>
+          <div className={classes.WeatherIconBlock}>
+            <div className={classes.WeatherIcon}>
+              <WeatherIcon
+                weatherStatusCode={weather.conditionCode}
+                isDay={weather.isDay}
+              />
             </div>
+            <div className={classes.WeatherLocation}>
+              <span>{weather.location}</span>
+            </div>
+          </div>
   
-            <div className={classes.WeatherDetails}>
-              {config.isCelsius ? (
-                <span>{weather.tempC}°C</span>
-              ) : (
-                <span>{Math.round(weather.tempF)}°F</span>
-              )}
-              <span>{weather[config.weatherData]}%</span>
-            </div>
-	    {config.showExtraWeatherColumn && (
-            <div className={classes.WeatherDetailsAddl}>
-             <span>{formatWeatherData(config.extraWeatherTop, weather)}</span>
-             <span>{formatWeatherData(config.extraWeatherBottom, weather)}</span>
-            </div>
+          <div className={classes.WeatherDetails}>
+            {config.isCelsius ? (
+              <span>{weather.tempC}°C</span>
+            ) : (
+              <span>{Math.round(weather.tempF)}°F</span>
             )}
-          </Fragment>
-        ))}
+            <span>{weather[config.weatherData]}%</span>
+          </div>
+
+          {config.showExtraWeatherColumn && (
+            <div className={classes.WeatherDetailsAddl}>
+              <span>{formatWeatherData(config.extraWeatherTop, weather)}</span>
+              <span>{formatWeatherData(config.extraWeatherBottom, weather)}</span>
+            </div>
+          )}
+        </Fragment>
+      )}
     </div>
   );
 };
