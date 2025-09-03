@@ -29,7 +29,7 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     config: { config },
     categories: { categories: allCategories },
   } = useSelector((state: State) => state);
-  
+
   // Create a new list that is filtered for ONLY bookmark categories
   const categories = (allCategories || []).filter(
     (category) => category.section === 'bookmarks'
@@ -78,9 +78,8 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     if (proceed) deleteCategory(id);
   };
 
-  const updateCategoryHandler = (id: number) => {
-    const category = (categories ?? []).find((c) => c.id === id) as Category;
-    openFormForUpdating(category);
+  const updateCategoryHandler = (categoryToUpdate: Category) => {
+    openFormForUpdating(categoryToUpdate);
   };
 
   const pinCategoryHandler = (id: number) => {
@@ -88,7 +87,7 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     pinCategory(category);
   };
 
-  const changeCategoryVisibiltyHandler = (id: number) => {
+  const changeCategoryVisibilityHandler = (id: number) => {
     const category = (categories ?? []).find((c) => c.id === id) as Category;
     updateCategory(id, { ...category, isPublic: !category.isPublic });
   };
@@ -110,7 +109,7 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
         <Droppable droppableId="categories">
           {(provided) => (
             <Table
-              headers={['Name', 'Visibility', 'Actions']}
+              headers={['Name', 'Abbrev', 'Visibility', 'Actions']}
               innerRef={provided.innerRef}
             >
               {localCategories.map((category, index) => (
@@ -143,18 +142,19 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
                         style={style}
                       >
                         <td style={{ width: '300px' }}>{category.name}</td>
+			<td style={{ width: '120px' }}>{category.abbreviation ?? '—'}</td>
                         <td style={{ width: '300px' }}>
                           {entityForActions.isPublic ? 'Visible' : 'Hidden'}
                         </td>
 
                         {!snapshot.isDragging && (
-                          <TableActions
-                            entity={entityForActions} // << was entity={category}
-                            deleteHandler={deleteCategoryHandler}
-                            updateHandler={updateCategoryHandler}
-                            pinHanlder={pinCategoryHandler}
-                            changeVisibilty={changeCategoryVisibiltyHandler}
-                          />
+			  <TableActions
+			    entity={entityForActions} // cat obj for cur row
+			    deleteHandler={deleteCategoryHandler}
+			    updateHandler={() => updateCategoryHandler(entityForActions as Category)}
+			    pinHanlder={pinCategoryHandler}
+			    changeVisibilty={changeCategoryVisibilityHandler}
+			  />
                         )}
                       </tr>
                     );

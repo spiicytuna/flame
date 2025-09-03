@@ -3,7 +3,7 @@
 }
 
 .BookmarkCard h3 {
-  color: var(--color-primary);
+  color: var(--color-accent);
   margin-bottom: 10px;
   font-size: 1.5rem;
   font-weight: bold;

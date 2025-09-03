@@ -1,36 +1,40 @@
-const asyncWrapper = require('../../middleware/asyncWrapper');
-const ErrorResponse = require('../../utils/ErrorResponse');
 const Category = require('../../models/Category');
+const Logger = require('../../utils/Logger');
+const logger = new Logger();
 
-// @desc      Update category
-// @route     PUT /api/categories/:id
-// @access    Public
-const updateCategory = asyncWrapper(async (req, res, next) => {
-  let category = await Category.findOne({
-    where: { id: req.params.id },
-  });
+module.exports = async function updateCategory(req, res) {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      isPublic,
+      isPinned,
+      section,
+      abbreviation,
+      orderId,
+    } = req.body;
 
-  if (!category) {
-    return next(
-      new ErrorResponse(
-        `Category with id of ${req.params.id} was not found`,
-        404
-      )
-    );
+    const category = await Category.findByPk(id);
+    if (!category) {
+      return res.status(404).json({ success: false, message: 'Category not found' });
+    }
+
+    if (name != null) category.name = String(name).trim();
+    if (isPublic != null) category.isPublic = !!isPublic;
+    if (isPinned != null) category.isPinned = !!isPinned;
+    if (section === 'apps' || section === 'bookmarks') category.section = section;
+    if (abbreviation != null) category.abbreviation = String(abbreviation || '—').slice(0, 3) || '—';
+    if (orderId != null) category.orderId = Number(orderId);
+
+    await category.save();
+    return res.json({ success: true, data: category });
+  } catch (err) {
+    if (err && err.name === 'SequelizeUniqueConstraintError') {
+      return res
+        .status(409)
+        .json({ success: false, message: 'Category name already exists in this section' });
+    }
+    logger.error(err);
+    return res.status(500).json({ success: false, message: 'Failed to update category' });
   }
-
-  const updateData = {
-    name: req.body.name ?? category.name,
-    isPinned: req.body.isPinned ?? category.isPinned,
-    section: req.body.section ?? category.section,
-  };
-  
-  category = await category.update(updateData);
-
-  res.status(200).json({
-    success: true,
-    data: category,
-  });
-});
-
-module.exports = updateCategory;
+};

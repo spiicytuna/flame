@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { useEffect, useState, SyntheticEvent, ChangeEvent } from 'react';
 
 // Redux
 import { useDispatch } from 'react-redux';
@@ -11,73 +11,96 @@ import { Category, NewCategory } from '../../../interfaces';
 // UI
 import { ModalForm, InputGroup, Button } from '../../UI';
 
-// Utils
-import { inputHandler, newCategoryTemplate } from '../../../utility';
-
 interface Props {
   modalHandler: () => void;
   category?: Category;
 }
 
-export const CategoryForm = ({
-  category,
-  modalHandler,
-}: Props): JSX.Element => {
+export const CategoryForm = ({ category, modalHandler }: Props): JSX.Element => {
+  // DEBUG lines (not typically neede)
+  // console.log('--- CategoryForm component is rendering ---');
+  // console.log('The category prop it received is:', category);
+
   const dispatch = useDispatch();
-  const { addCategory, updateCategory } = bindActionCreators(
-    actionCreators,
-    dispatch
-  );
+  const {
+    addCategory,
+    updateCategory,
+    createNotification,
+    setEditCategory,
+  } = bindActionCreators(actionCreators, dispatch);
 
-  const [formData, setFormData] = useState<NewCategory>(newCategoryTemplate);
+  const [name, setName] = useState('');
+  const [isPublic, setIsPublic] = useState<number>(1);
+  const [abbreviation, setAbbreviation] = useState<string>('—');
 
-  // Load category data if provided for editing
+  // Prefill when editing
   useEffect(() => {
     if (category) {
-      setFormData({ ...category });
+      setName(category.name);
+      setIsPublic(category.isPublic ? 1 : 0);
+      setAbbreviation((category.abbreviation ?? '—').slice(0, 3));
     } else {
-      setFormData(newCategoryTemplate);
+      setName('');
+      setIsPublic(1);
+      setAbbreviation('—');
     }
   }, [category]);
 
-  const inputChangeHandler = (
-    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    options?: { isNumber?: boolean; isBool?: boolean }
-  ) => {
-    inputHandler<NewCategory>({
-      e,
-      options,
-      setStateHandler: setFormData,
-      state: formData,
-    });
-  };
-
-  // Category form handler
-  const formSubmitHandler = (e: FormEvent): void => {
+  const onSubmit = (e: SyntheticEvent<HTMLFormElement>): void => {
     e.preventDefault();
 
-    if (!category) {
-      addCategory(formData);
-    } else {
-      updateCategory(category.id, formData);
-      modalHandler();
+    const trimmed = name.trim();
+    if (!trimmed) {
+      createNotification({ title: 'Error', message: 'Category name is required' });
+      return;
     }
 
-    setFormData(newCategoryTemplate);
+    // Build payload
+    const payload: NewCategory & { abbreviation?: string } = {
+      name: trimmed,
+      isPublic: !!isPublic,
+      section: 'bookmarks',
+      abbreviation: (abbreviation || '—').slice(0, 3),
+    };
+
+    if (!category) {
+      addCategory(payload as any);
+    } else {
+      // only send fields that can be updated; id comes from URL
+      updateCategory(category.id, payload as any);
+    }
+
+    setEditCategory(null);
+    modalHandler();
   };
 
   return (
-    <ModalForm modalHandler={modalHandler} formHandler={formSubmitHandler}>
+    <ModalForm modalHandler={modalHandler} formHandler={onSubmit}>
       <InputGroup>
         <label htmlFor="name">Category Name</label>
         <input
           type="text"
           name="name"
           id="name"
-          placeholder="Social Media"
+          placeholder="Personal"
           required
-          value={formData.name}
-          onChange={(e) => inputChangeHandler(e)}
+          value={name}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+        />
+      </InputGroup>
+
+      <InputGroup>
+        <label htmlFor="abbr">Category Abbreviation: Used for Searching</label>
+        <input
+          id="abbr"
+          name="abbreviation"
+          type="text"
+          maxLength={3}
+          placeholder="—"
+          value={abbreviation}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setAbbreviation(e.target.value.slice(0, 3))
+          }
         />
       </InputGroup>
 
@@ -86,8 +109,10 @@ export const CategoryForm = ({
         <select
           id="isPublic"
           name="isPublic"
-          value={formData.isPublic ? 1 : 0}
-          onChange={(e) => inputChangeHandler(e, { isBool: true })}
+          value={isPublic}
+          onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+            setIsPublic(parseInt(e.target.value, 10))
+          }
         >
           <option value={1}>Visible (anyone can access it)</option>
           <option value={0}>Hidden (authentication required)</option>
@@ -98,3 +123,5 @@ export const CategoryForm = ({
     </ModalForm>
   );
 };
+
+export default CategoryForm;

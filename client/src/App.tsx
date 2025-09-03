@@ -1,17 +1,13 @@
-import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Redux
-import { useDispatch, useSelector } from 'react-redux';
-import { bindActionCreators } from 'redux';
 import { autoLogin, getConfig } from './store/action-creators';
-import { actionCreators, store } from './store';
-import { State } from './store/reducers';
+import { store } from './store';
 
-// Utils
-import { checkVersion, decodeToken, parsePABToTheme } from './utility';
+// Layout
+import { MainLayout } from './components/Layout/MainLayout';
 
-// Routes
+// Page Components
 import { Home } from './components/Home/Home';
 import { Apps } from './components/Apps/Apps';
 import { Settings } from './components/Settings/Settings';
@@ -21,65 +17,18 @@ import { NotificationCenter } from './components/NotificationCenter/Notification
 // routing
 import { ProtectedRoute } from './components/Routing/ProtectedRoute';
 
-// Get config
+// config
 store.dispatch<any>(getConfig());
 
-// Validate token
 if (localStorage.token) {
   store.dispatch<any>(autoLogin());
 }
 
 export const App = (): JSX.Element => {
-  const { config, loading } = useSelector((state: State) => state.config);
-
-  const dispath = useDispatch();
-  const { fetchQueries, setTheme, logout, createNotification, fetchThemes } =
-    bindActionCreators(actionCreators, dispath);
-
-  useEffect(() => {
-    // check if token is valid
-    const tokenIsValid = setInterval(() => {
-      if (localStorage.token) {
-        const expiresIn = decodeToken(localStorage.token).exp * 1000;
-        const now = new Date().getTime();
-
-        if (now > expiresIn) {
-          logout();
-          createNotification({
-            title: 'Info',
-            message: 'Session expired. You have been logged out',
-          });
-        }
-      }
-    }, 1000);
-
-    // load themes
-    fetchThemes();
-
-    // set user theme if present
-    if (localStorage.theme) {
-      setTheme(parsePABToTheme(localStorage.theme));
-    }
-
-    // check for updated
-    checkVersion();
-
-    // load custom search queries
-    fetchQueries();
-
-    return () => window.clearInterval(tokenIsValid);
-  }, []);
-
-  // If there is no user theme, set the default one
-  useEffect(() => {
-    if (!loading && !localStorage.theme) {
-      setTheme(parsePABToTheme(config.defaultTheme), false);
-    }
-  }, [loading]);
-
   return (
     <>
       <BrowserRouter>
+        <MainLayout>
           <Routes>
             {/* Public route */}
             <Route path="/" element={<Home />} />
@@ -110,6 +59,7 @@ export const App = (): JSX.Element => {
               }
             />
           </Routes>
+        </MainLayout>
       </BrowserRouter>
       <NotificationCenter />
     </>

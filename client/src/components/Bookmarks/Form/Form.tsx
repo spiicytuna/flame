@@ -7,19 +7,21 @@ import { BookmarksForm } from './BookmarksForm';
 import { Fragment } from 'react';
 import { useSelector } from 'react-redux';
 import { State } from '../../../store/reducers';
-import { bookmarkTemplate, categoryTemplate } from '../../../utility';
+import { bookmarkTemplate } from '../../../utility';
+import { Category } from '../../../interfaces';
 
 interface Props {
   modalHandler: () => void;
   contentType: ContentType;
   inUpdate?: boolean;
+  categoryToEdit?: Category; // ✅ THIS IS THE FIX
 }
 
 export const Form = (props: Props): JSX.Element => {
-  const { categoryInEdit } = useSelector((state: State) => state.categories);
+  // We no longer need categoryInEdit from Redux
   const { bookmarkInEdit } = useSelector((state: State) => state.bookmarks);
 
-  const { modalHandler, contentType, inUpdate } = props;
+  const { modalHandler, contentType, inUpdate, categoryToEdit } = props;
 
   return (
     <Fragment>
@@ -38,7 +40,8 @@ export const Form = (props: Props): JSX.Element => {
           {contentType === ContentType.category ? (
             <CategoryForm
               modalHandler={modalHandler}
-              category={categoryInEdit || categoryTemplate}
+              // Use the prop directly
+              category={categoryToEdit}
             />
           ) : (
             <BookmarksForm

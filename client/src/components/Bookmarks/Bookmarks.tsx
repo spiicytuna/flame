@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 // Redux
-import { getCategoriesForSection } from '../../store/reducers/category'
 import { useDispatch, useSelector } from 'react-redux';
-import { State } from '../../store/reducers';
 import { bindActionCreators } from 'redux';
+import { State } from '../../store/reducers';
 import { actionCreators } from '../../store';
+import { getCategoriesForSection } from '../../store/action-creators/category';
 
 // Typescript
-import { Category, Bookmark } from '../../interfaces';
+import type { Category, Bookmark } from '../../interfaces';
 
 // CSS
 import classes from './Bookmarks.module.css';
@@ -39,115 +39,96 @@ export enum ContentType {
 }
 
 export const Bookmarks = (props: Props): JSX.Element => {
-  // Get Redux state
-  const {
-    categories: { loading, categories: allCategories, categoryInEdit },
-    auth: { isAuthenticated },
-  } = useSelector((state: State) => state);
-  
-  // Create a new list that is filtered for ONLY bookmark categories
+  // Redux state: Using specific selectors to prevent unnecessary re-renders
+  const loading = useSelector((state: State) => state.categories.loading);
+  const allCategories = useSelector((state: State) => state.categories.categories);
+  const isAuthenticated = useSelector((state: State) => state.auth.isAuthenticated);
+
+  // Filter to ONLY bookmark categories
   const categories = (allCategories || []).filter(
-    (category) => category.section === 'bookmarks'
+    (c) => c.section === 'bookmarks'
   );
-  
-  // Get Redux action creators
+
+  // Actions
   const dispatch = useDispatch();
-  const { setEditCategory, setEditBookmark } =
-    bindActionCreators(actionCreators, dispatch);  
+  const { setEditCategory, setEditBookmark } = bindActionCreators(
+    actionCreators,
+    dispatch
+  );
 
-  // Load bookmark categories if they haven't been loaded
-  useEffect(() => {
-    // check the unfiltered list to see if *any* categories have been loaded
-    if (!allCategories.length) {
-      dispatch(getCategoriesForSection('bookmarks') as any);
-    }
-  }, [allCategories, dispatch]);
-  
-
-  // Form
+  // UI state
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [formContentType, setFormContentType] = useState(ContentType.category);
   const [isInUpdate, setIsInUpdate] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [showCategoryTable, setShowCategoryTable] = useState(false);
 
-  // Table
-  const [showTable, setShowTable] = useState(false);
-  const [tableContentType, setTableContentType] = useState(
-    ContentType.category
-  );
+  const [categoryForForm, setCategoryForForm] = useState<Category | undefined>(undefined);  
 
-  // Observe if user is authenticated -> set default view (grid) if not
+  // Cleanup hooks
   useEffect(() => {
     if (!isAuthenticated) {
-      setShowTable(false);
+      setSelectedCategory(null);
+      setShowCategoryTable(false);
       setModalIsOpen(false);
     }
   }, [isAuthenticated]);
 
   useEffect(() => {
-    if (categoryInEdit && !modalIsOpen) {
-      setTableContentType(ContentType.bookmark);
-      setShowTable(true);
-    }
-  }, [categoryInEdit]);
+    setEditCategory(null);
+  }, [setEditCategory]);
 
   useEffect(() => {
-    setShowTable(false);
-    setEditCategory(null);
-  }, []);
+    if (!modalIsOpen) {
+      setEditCategory(null);
+      setEditBookmark(null);
+    }
+  }, [modalIsOpen, setEditCategory, setEditBookmark]);
 
-  // Form actions
-  const toggleModal = (): void => {
-    setModalIsOpen(!modalIsOpen);
+  // Handlers
+  const toggleModal = (): void => setModalIsOpen((s) => !s);
+
+  const selectCategoryHandler = (category: Category): void => {
+    setSelectedCategory(category);
   };
 
   const openFormForAdding = (contentType: ContentType) => {
     setFormContentType(contentType);
     setIsInUpdate(false);
+    setCategoryForForm(undefined);
+    setEditCategory(null);
+    setEditBookmark(null);
     toggleModal();
   };
 
   const openFormForUpdating = (data: Category | Bookmark): void => {
     setIsInUpdate(true);
-
-    const instanceOfCategory = (object: any): object is Category => {
-      return 'bookmarks' in object;
-    };
-
-    if (instanceOfCategory(data)) {
+    const isCategory = (obj: any): obj is Category => 'bookmarks' in obj;
+    if (isCategory(data)) {
+      setEditBookmark(null);
       setFormContentType(ContentType.category);
       setEditCategory(data);
+      setCategoryForForm(data);
     } else {
+      setEditCategory(null);
       setFormContentType(ContentType.bookmark);
       setEditBookmark(data);
     }
-
     toggleModal();
   };
 
-  // Table actions
-  const showTableForEditing = (contentType: ContentType) => {
-    // We're in the edit mode and the same button was clicked - go back to list
-    if (showTable && contentType === tableContentType) {
-      setEditCategory(null);
-      setShowTable(false);
-    } else {
-      setShowTable(true);
-      setTableContentType(contentType);
-    }
-  };
-
+  // done edit => reset the new states
   const finishEditing = () => {
-    setShowTable(false);
+    setSelectedCategory(null);
+    setShowCategoryTable(false);
     setEditCategory(null);
   };
 
-  const isEditing = showTable || categoryInEdit;
+  const isEditing = showCategoryTable || !!selectedCategory;
 
+  // goBackElement use => corrected finishEditing handler
   const goBackElement = isEditing ? (
-    <span className={classes.GoBack} onClick={() => {
-      setShowTable(false);
-      setEditCategory(null);
-    }}>
+    <span className={classes.GoBack} onClick={finishEditing}>
       Go back
     </span>
   ) : (
@@ -157,11 +138,14 @@ export const Bookmarks = (props: Props): JSX.Element => {
   return (
     <Container>
       <Modal isOpen={modalIsOpen} setIsOpen={toggleModal}>
-        <Form
-          modalHandler={toggleModal}
-          contentType={formContentType}
-          inUpdate={isInUpdate}
-        />
+        {modalIsOpen && (
+          <Form
+            modalHandler={toggleModal}
+            contentType={formContentType}
+            inUpdate={isInUpdate}
+            categoryToEdit={categoryForForm}
+          />
+        )}
       </Modal>
 
       <Headline title="All Bookmarks" subtitle={goBackElement} />
@@ -179,37 +163,43 @@ export const Bookmarks = (props: Props): JSX.Element => {
             handler={() => openFormForAdding(ContentType.bookmark)}
           />
           <ActionButton
-            name="Edit Categories"
+            name={showCategoryTable ? 'Done Editing' : 'Edit Categories'}
             icon="mdiPencil"
-            handler={() => showTableForEditing(ContentType.category)}
+            handler={() => {
+              setSelectedCategory(null);
+              setShowCategoryTable((v) => !v);
+            }}
           />
-          {showTable && tableContentType === ContentType.bookmark && (
-            <ActionButton
-              name="Finish Editing"
-              icon="mdiPencil"
-              handler={finishEditing}
-            />
-          )}
         </div>
-      )}
-
-      {categories.length && isAuthenticated && !showTable ? (
-        <Message isPrimary={false}>
-          Click on category name to edit its bookmarks
-        </Message>
-      ) : (
-        <></>
       )}
 
       {loading ? (
         <Spinner />
-      ) : !showTable ? (
-        <BookmarkGrid categories={categories} searching={props.searching} />
-      ) : (
+      ) : showCategoryTable ? (
         <Table
-          contentType={tableContentType}
+          contentType={ContentType.category}
           openFormForUpdating={openFormForUpdating}
         />
+      ) : selectedCategory ? (
+        <Table
+          contentType={ContentType.bookmark}
+          openFormForUpdating={openFormForUpdating}
+          category={selectedCategory}
+          onFinishEditing={() => setSelectedCategory(null)}
+        />
+      ) : categories.length > 0 ? (
+        // show the grid if not loading AND hv cats
+        <BookmarkGrid
+          categories={categories}
+          searching={props.searching}
+          selectCategoryHandler={selectCategoryHandler}
+        />
+      ) : (
+        // else show empty msg
+        <Message>
+          You don't have any bookmarks. You can add a new one from the{' '}
+          <Link to="/bookmarks">/bookmarks</Link> menu
+        </Message>
       )}
     </Container>
   );

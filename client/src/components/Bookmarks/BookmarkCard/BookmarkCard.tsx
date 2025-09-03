@@ -1,7 +1,7 @@
 import { Fragment } from 'react';
 
 // Redux
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
 import { State } from '../../../store/reducers';
 import { bindActionCreators } from 'redux';
 import { actionCreators } from '../../../store';
@@ -17,18 +17,16 @@ import { iconParser, isImage, isSvg, isUrl, urlParser } from '../../../utility';
 interface Props {
   category: Category;
   fromHomepage?: boolean;
+  selectCategoryHandler?: (category: Category) => void;
 }
 
 export const BookmarkCard = (props: Props): JSX.Element => {
-  const { category, fromHomepage = false } = props;
+  const { category, fromHomepage = false, selectCategoryHandler } = props;
 
   const {
     config: { config },
     auth: { isAuthenticated },
   } = useSelector((state: State) => state);
-
-  const dispatch = useDispatch();
-  const { setEditCategory } = bindActionCreators(actionCreators, dispatch);
 
   return (
     <div className={`${classes.BookmarkCard} ${fromHomepage ? classes.homepage : ''}`}> 
@@ -37,8 +35,8 @@ export const BookmarkCard = (props: Props): JSX.Element => {
           fromHomepage || !isAuthenticated ? '' : classes.BookmarkHeader
         }
         onClick={() => {
-          if (!fromHomepage && isAuthenticated) {
-            setEditCategory(category);
+	  if (selectCategoryHandler && !fromHomepage && isAuthenticated) {
+            selectCategoryHandler(category);
           }
         }}
       >
