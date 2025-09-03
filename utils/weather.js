@@ -20,11 +20,17 @@ async function getAPIKey() {
 async function getWeather(lat, lon) {
   const key = await getAPIKey();
 
+  // no key => return null
+  if (!key) {
+    return null;
+  }
+
   const url = `${API_URL}?key=${key}&q=${lat},${lon}&aqi=no`;
   const res = await fetch(url);
   const data = await res.json();
 
   if (!res.ok || !data?.current) {
+    // catch any errors from the Weather API
     throw new Error(data.error?.message || 'Weather fetch failed');
   }
 
