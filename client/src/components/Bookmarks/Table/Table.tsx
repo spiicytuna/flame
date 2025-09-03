@@ -6,6 +6,8 @@ import { CategoryTable } from './CategoryTable';
 interface Props {
   contentType: ContentType;
   openFormForUpdating: (data: Category | Bookmark) => void;
+  category?: Category;
+  onFinishEditing?: () => void;
 }
 
 export const Table = (props: Props): JSX.Element => {
@@ -13,7 +15,11 @@ export const Table = (props: Props): JSX.Element => {
     props.contentType === ContentType.category ? (
       <CategoryTable openFormForUpdating={props.openFormForUpdating} />
     ) : (
-      <BookmarksTable openFormForUpdating={props.openFormForUpdating} />
+      <BookmarksTable
+        category={props.category!}
+        openFormForUpdating={props.openFormForUpdating}
+        onFinishEditing={props.onFinishEditing!}
+      />
     );
 
   return tableEl;

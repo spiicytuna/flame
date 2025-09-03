@@ -10,53 +10,16 @@ import {
   Category,
   Config,
   NewBookmark,
-  NewCategory,
 } from '../../interfaces';
 
 import {
   AddBookmarkAction,
-  AddCategoryAction,
   DeleteBookmarkAction,
-  DeleteCategoryAction,
-  GetCategoriesAction,
-  PinCategoryAction,
   ReorderBookmarksAction,
-  ReorderCategoriesAction,
   SetEditBookmarkAction,
-  SetEditCategoryAction,
   SortBookmarksAction,
-  SortCategoriesAction,
   UpdateBookmarkAction,
-  UpdateCategoryAction,
 } from '../actions/bookmark';
-
-export const addCategory =
-  (formData: NewCategory) => async (dispatch: Dispatch<AddCategoryAction>) => {
-    try {
-      const res = await axios.post<ApiResponse<Category>>(
-        '/api/categories',
-        formData,
-        { headers: applyAuth() }
-      );
-
-      dispatch<any>({
-        type: ActionType.createNotification,
-        payload: {
-          title: 'Success',
-          message: `Category ${formData.name} created`,
-        },
-      });
-
-      dispatch({
-        type: ActionType.addCategory,
-        payload: res.data.data,
-      });
-
-      dispatch<any>(sortCategories());
-    } catch (err) {
-      console.log(err);
-    }
-  };
 
 export const addBookmark =
   (formData: NewBookmark | FormData) =>
@@ -82,90 +45,6 @@ export const addBookmark =
       });
 
       dispatch<any>(sortBookmarks(res.data.data.categoryId));
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-export const pinCategory =
-  (category: Category) => async (dispatch: Dispatch<PinCategoryAction>) => {
-    try {
-      const { id, isPinned, name } = category;
-      const res = await axios.put<ApiResponse<Category>>(
-        `/api/categories/${id}`,
-        { isPinned: !isPinned },
-        { headers: applyAuth() }
-      );
-
-      const status = isPinned
-        ? 'unpinned from Homescreen'
-        : 'pinned to Homescreen';
-
-      dispatch<any>({
-        type: ActionType.createNotification,
-        payload: {
-          title: 'Success',
-          message: `Category ${name} ${status}`,
-        },
-      });
-
-      dispatch({
-        type: ActionType.pinCategory,
-        payload: res.data.data,
-      });
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-export const deleteCategory =
-  (id: number) => async (dispatch: Dispatch<DeleteCategoryAction>) => {
-    try {
-      await axios.delete<ApiResponse<{}>>(`/api/categories/${id}`, {
-        headers: applyAuth(),
-      });
-
-      dispatch<any>({
-        type: ActionType.createNotification,
-        payload: {
-          title: 'Success',
-          message: `Category deleted`,
-        },
-      });
-
-      dispatch({
-        type: ActionType.deleteCategory,
-        payload: id,
-      });
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-export const updateCategory =
-  (id: number, formData: NewCategory) =>
-  async (dispatch: Dispatch<UpdateCategoryAction>) => {
-    try {
-      const res = await axios.put<ApiResponse<Category>>(
-        `/api/categories/${id}`,
-        formData,
-        { headers: applyAuth() }
-      );
-
-      dispatch<any>({
-        type: ActionType.createNotification,
-        payload: {
-          title: 'Success',
-          message: `Category ${formData.name} updated`,
-        },
-      });
-
-      dispatch({
-        type: ActionType.updateCategory,
-        payload: res.data.data,
-      });
-
-      dispatch<any>(sortCategories());
     } catch (err) {
       console.log(err);
     }
@@ -260,64 +139,6 @@ export const updateBookmark =
     }
   };
 
-export const sortCategories =
-  () => async (dispatch: Dispatch<SortCategoriesAction>) => {
-    try {
-      const res = await axios.get<ApiResponse<Config>>('/api/config');
-
-      dispatch({
-        type: ActionType.sortCategories,
-        payload: res.data.data.useOrdering,
-      });
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-export const reorderCategories =
-  (categories: Category[]) =>
-  async (dispatch: Dispatch<ReorderCategoriesAction>) => {
-    interface ReorderQuery {
-      categories: {
-        id: number;
-        orderId: number;
-      }[];
-    }
-
-    try {
-      const updateQuery: ReorderQuery = { categories: [] };
-
-      categories.forEach((category, index) =>
-        updateQuery.categories.push({
-          id: category.id,
-          orderId: index + 1,
-        })
-      );
-
-      await axios.put<ApiResponse<{}>>(
-        '/api/categories/0/reorder',
-        updateQuery,
-        { headers: applyAuth() }
-      );
-
-      dispatch({
-        type: ActionType.reorderCategories,
-        payload: categories,
-      });
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-export const setEditCategory =
-  (category: Category | null) =>
-  (dispatch: Dispatch<SetEditCategoryAction>) => {
-    dispatch({
-      type: ActionType.setEditCategory,
-      payload: category,
-    });
-  };
-
 export const setEditBookmark =
   (bookmark: Bookmark | null) =>
   (dispatch: Dispatch<SetEditBookmarkAction>) => {
@@ -380,14 +201,12 @@ export const sortBookmarks =
   };
 
 export const getHomePageData = () => async (dispatch: any) => {
-  // 1. Set loading states to true
   dispatch({ type: ActionType.getApps });
   dispatch({ type: ActionType.getCategories });
 
   try {
-    // 2. Fetch all data concurrently
-    const [appsResponse, appCategoriesResponse, bookmarkCategoriesResponse] =
-      await Promise.all([
+    const [appsResult, appCategoriesResult, bookmarkCategoriesResult] =
+      await Promise.allSettled([
         axios.get<ApiResponse<App[]>>('/api/apps', { headers: applyAuth() }),
         axios.get<ApiResponse<Category[]>>('/api/categories?section=apps', {
           headers: applyAuth(),
@@ -397,13 +216,17 @@ export const getHomePageData = () => async (dispatch: any) => {
         }),
       ]);
 
-    // 3. Get the data, ensuring we have arrays
-    const apps = appsResponse.data.data ?? [];
-    const appCategories = appCategoriesResponse.data.data ?? [];
-    const bookmarkCategories = bookmarkCategoriesResponse.data.data ?? [];
+    const apps =
+      appsResult.status === 'fulfilled' ? appsResult.value.data.data ?? [] : [];
+    const appCategories =
+      appCategoriesResult.status === 'fulfilled'
+        ? appCategoriesResult.value.data.data ?? []
+        : [];
+    const bookmarkCategories =
+      bookmarkCategoriesResult.status === 'fulfilled'
+        ? bookmarkCategoriesResult.value.data.data ?? []
+        : [];
 
-    // 4. Safely merge categories, preventing ID conflicts.
-    // This mimics the logic from the original getCategoriesForSection action.
     const allCategories = [...bookmarkCategories];
     const bookmarkIds = new Set(bookmarkCategories.map((c) => c.id));
     
@@ -413,7 +236,6 @@ export const getHomePageData = () => async (dispatch: any) => {
       }
     });
 
-    // 5. Dispatch success actions with the complete and clean data
     dispatch({
       type: ActionType.getAppsSuccess,
       payload: apps,
@@ -424,15 +246,15 @@ export const getHomePageData = () => async (dispatch: any) => {
       payload: allCategories,
     });
   } catch (err: any) {
-    // 6. Handle any errors
-    console.error("Failed to get home page data:", err);
+    console.error("Failed during homepage data processing:", err);
+    // generic error handling
     dispatch({
       type: ActionType.getAppsError,
-      payload: err?.message || 'Failed to fetch apps',
+      payload: 'Failed to fetch apps',
     });
     dispatch({
       type: ActionType.getCategoriesError,
-      payload: err?.message || 'Failed to fetch categories',
+      payload: 'Failed to fetch categories',
     });
   }
 };

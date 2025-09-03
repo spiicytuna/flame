@@ -5,6 +5,7 @@ import {
   Draggable,
   DropResult,
 } from 'react-beautiful-dnd';
+import { Link } from 'react-router-dom';
 
 // Redux
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,17 +17,22 @@ import { actionCreators } from '../../../store';
 import { Bookmark, Category } from '../../../interfaces';
 
 // UI
-import { Message, Table } from '../../UI';
+import { Message, Table, ActionButton } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
 import { bookmarkTemplate } from '../../../utility';
 
 interface Props {
+  category: Category;
+  onFinishEditing: () => void;
   openFormForUpdating: (data: Category | Bookmark) => void;
 }
 
-export const BookmarksTable = ({ openFormForUpdating }: Props): JSX.Element => {
+export const BookmarksTable = ({
+  category,
+  onFinishEditing,
+  openFormForUpdating,
+}: Props): JSX.Element => {
   const {
-    categories: { categoryInEdit },
     config: { config },
   } = useSelector((state: State) => state);
 
@@ -40,14 +46,10 @@ export const BookmarksTable = ({ openFormForUpdating }: Props): JSX.Element => {
 
   const [localBookmarks, setLocalBookmarks] = useState<Bookmark[]>([]);
 
-  // Copy bookmarks array
   useEffect(() => {
-    if (categoryInEdit) {
-      setLocalBookmarks([...(categoryInEdit?.bookmarks ?? [])]);
-    }
-  }, [categoryInEdit]);
+    setLocalBookmarks([...(category?.bookmarks ?? [])]);
+  }, [category]);
 
-  // Drag and drop handler
   const dragEndHanlder = (result: DropResult): void => {
     if (config.useOrdering !== 'orderId') {
       createNotification({
@@ -67,34 +69,26 @@ export const BookmarksTable = ({ openFormForUpdating }: Props): JSX.Element => {
 
     setLocalBookmarks(tmpBookmarks);
 
-    const categoryId = categoryInEdit?.id || -1;
-    reorderBookmarks(tmpBookmarks, categoryId);
+    reorderBookmarks(tmpBookmarks, category.id);
   };
 
-  // Action hanlders
   const deleteBookmarkHandler = (id: number, name: string) => {
-    const categoryId = categoryInEdit?.id || -1;
-
     const proceed = window.confirm(`Are you sure you want to delete ${name}?`);
     if (proceed) {
-      deleteBookmark(id, categoryId);
+      deleteBookmark(id, category.id);
     }
   };
 
   const updateBookmarkHandler = (id: number) => {
     const bookmark =
-      (categoryInEdit?.bookmarks ?? []).find((b) => b.id === id) || bookmarkTemplate;
-
+      (category.bookmarks ?? []).find((b) => b.id === id) || bookmarkTemplate;
     openFormForUpdating(bookmark);
   };
 
   const changeBookmarkVisibiltyHandler = (id: number) => {
     const bookmark =
-      (categoryInEdit?.bookmarks ?? []).find((b) => b.id === id) || bookmarkTemplate;
-
-    const categoryId = categoryInEdit?.id || -1;
-    const [prev, curr] = [categoryId, categoryId];
-
+      (category.bookmarks ?? []).find((b) => b.id === id) || bookmarkTemplate;
+    const [prev, curr] = [category.id, category.id];
     updateBookmark(
       id,
       { ...bookmark, isPublic: !bookmark.isPublic },
@@ -104,85 +98,91 @@ export const BookmarksTable = ({ openFormForUpdating }: Props): JSX.Element => {
 
   return (
     <Fragment>
-      {!categoryInEdit ? (
-        <Message isPrimary={false}>
-          Switch to grid view and click on the name of category you want to edit
-        </Message>
-      ) : (
-        <Message isPrimary={false}>
-          Editing bookmarks from&nbsp;<span>{categoryInEdit.name}</span>
-          &nbsp;category
-        </Message>
-      )}
+      {/* header copied UI from AppTable.tsx */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <h2 style={{ color: 'var(--color-primary)' }}>Editing: {category.name}</h2>
+        <ActionButton
+          name="Done Editing"
+          icon="mdiPencilOff"
+          handler={onFinishEditing}
+        />
+      </div>
 
-      {categoryInEdit && (
-        <DragDropContext onDragEnd={dragEndHanlder}>
-          <Droppable droppableId="bookmarks">
-            {(provided) => (
-              <Table
-                headers={[
-                  'Name',
-                  'URL',
-                  'Icon',
-                  'Visibility',
-                  'Category',
-                  'Actions',
-                ]}
-                innerRef={provided.innerRef}
-              >
-                {localBookmarks.map((bookmark, index): JSX.Element => {
-                  return (
-                    <Draggable
-                      key={bookmark.id}
-                      draggableId={bookmark.id.toString()}
-                      index={index}
-                    >
-                      {(provided, snapshot) => {
-                        const style = {
-                          border: snapshot.isDragging
-                            ? '1px solid var(--color-accent)'
-                            : 'none',
-                          borderRadius: '4px',
-                          ...provided.draggableProps.style,
-                        };
+      <Message isPrimary={false}>
+        {config.useOrdering === 'orderId' ? (
+          <p>You can drag and drop single rows to reorder bookmarks</p>
+        ) : (
+          <p>
+            Custom order is disabled. You can change it in the{' '}
+            <Link to="/settings/general">settings</Link>
+          </p>
+        )}
+      </Message>
 
-                        return (
-                          <tr
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            ref={provided.innerRef}
-                            style={style}
-                          >
-                            <td style={{ width: '200px' }}>{bookmark.name}</td>
-                            <td style={{ width: '200px' }}>{bookmark.url}</td>
-                            <td style={{ width: '200px' }}>{bookmark.icon}</td>
-                            <td style={{ width: '200px' }}>
-                              {bookmark.isPublic ? 'Visible' : 'Hidden'}
-                            </td>
-                            <td style={{ width: '200px' }}>
-                              {categoryInEdit.name}
-                            </td>
+      <DragDropContext onDragEnd={dragEndHanlder}>
+        <Droppable droppableId="bookmarks">
+          {(provided) => (
+            <Table
+              headers={[
+                'Name',
+                'URL',
+                'Icon',
+                'Visibility',
+                'Category',
+                'Actions',
+              ]}
+              innerRef={provided.innerRef}
+            >
+              {localBookmarks.map((bookmark, index): JSX.Element => {
+                return (
+                  <Draggable
+                    key={bookmark.id}
+                    draggableId={bookmark.id.toString()}
+                    index={index}
+                  >
+                    {(provided, snapshot) => {
+                      const style = {
+                        border: snapshot.isDragging
+                          ? '1px solid var(--color-accent)'
+                          : 'none',
+                        borderRadius: '4px',
+                        ...provided.draggableProps.style,
+                      };
 
-                            {!snapshot.isDragging && (
-                              <TableActions
-                                entity={bookmark}
-                                deleteHandler={deleteBookmarkHandler}
-                                updateHandler={updateBookmarkHandler}
-                                changeVisibilty={changeBookmarkVisibiltyHandler}
-                                showPin={false}
-                              />
-                            )}
-                          </tr>
-                        );
-                      }}
-                    </Draggable>
-                  );
-                })}
-              </Table>
-            )}
-          </Droppable>
-        </DragDropContext>
-      )}
+                      return (
+                        <tr
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          ref={provided.innerRef}
+                          style={style}
+                        >
+                          <td style={{ width: '200px' }}>{bookmark.name}</td>
+                          <td style={{ width: '200px' }}>{bookmark.url}</td>
+                          <td style={{ width: '200px' }}>{bookmark.icon}</td>
+                          <td style={{ width: '200px' }}>
+                            {bookmark.isPublic ? 'Visible' : 'Hidden'}
+                          </td>
+                          <td style={{ width: '200px' }}>{category.name}</td>
+
+                          {!snapshot.isDragging && (
+                            <TableActions
+                              entity={bookmark}
+                              deleteHandler={deleteBookmarkHandler}
+                              updateHandler={updateBookmarkHandler}
+                              changeVisibilty={changeBookmarkVisibiltyHandler}
+                              showPin={false}
+                            />
+                          )}
+                        </tr>
+                      );
+                    }}
+                  </Draggable>
+                );
+              })}
+            </Table>
+          )}
+        </Droppable>
+      </DragDropContext>
     </Fragment>
   );
 };

@@ -24,14 +24,17 @@ export const CategoryForm = ({ modalHandler, category }: Props): JSX.Element => 
 
   const [name, setName] = useState('');
   const [isPublic, setIsPublic] = useState<number>(1);
+  const [abbreviation, setAbbreviation] = useState<string>('—');
 
   useEffect(() => {
     if (category) {
       setName(category.name);
       setIsPublic(category.isPublic ? 1 : 0);
+      setAbbreviation((category.abbreviation ?? '—').slice(0, 3));
     } else {
       setName('');
       setIsPublic(1);
+      setAbbreviation('—');
     }
   }, [category]);
 
@@ -43,21 +46,17 @@ export const CategoryForm = ({ modalHandler, category }: Props): JSX.Element => 
       return;
     }
 
+    const payload = {
+      name,
+      isPublic: !!isPublic,
+      section: 'apps' as const,
+      abbreviation: (abbreviation && abbreviation.trim()) ? abbreviation.slice(0, 3) : '—',
+    };
+
     if (category) {
-      // UPDATE — preserve section as 'apps'
-      updateCategory(category.id, {
-        ...category,
-        name,
-        isPublic: !!isPublic,
-        section: 'apps',
-      });
+      updateCategory(category.id, payload);
     } else {
-      // CREATE — force section: 'apps'
-      addCategory({
-        name,
-        isPublic: !!isPublic,
-        section: 'apps',
-      } as any);
+      addCategory(payload as any);
     }
 
     setEditCategory(null);
@@ -76,6 +75,21 @@ export const CategoryForm = ({ modalHandler, category }: Props): JSX.Element => 
           placeholder="Engineering"
           value={name}
           onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+        />
+      </InputGroup>
+
+      <InputGroup>
+        <label htmlFor="abbr">Category Abbreviation: Used for Searching</label>
+        <input
+          id="abbr"
+          name="abbreviation"
+          type="text"
+          maxLength={3}
+          placeholder="—"
+          value={abbreviation}
+          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+            setAbbreviation(e.target.value.slice(0, 3))
+          }
         />
       </InputGroup>
 

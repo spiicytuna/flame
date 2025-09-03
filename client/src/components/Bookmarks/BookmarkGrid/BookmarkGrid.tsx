@@ -12,6 +12,7 @@ interface Props {
   totalCategories?: number;
   searching: boolean;
   fromHomepage?: boolean;
+  selectCategoryHandler?: (category: Category) => void;
 }
 
 export const BookmarkGrid = (props: Props): JSX.Element => {
@@ -36,6 +37,7 @@ export const BookmarkGrid = (props: Props): JSX.Element => {
                 category={category}
                 fromHomepage={fromHomepage}
                 key={category.id}
+		selectCategoryHandler={props.selectCategoryHandler}
               />
             )
           )}
