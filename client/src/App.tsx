@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import 'external-svg-loader';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Redux
 import { useDispatch, useSelector } from 'react-redux';
@@ -18,6 +17,9 @@ import { Apps } from './components/Apps/Apps';
 import { Settings } from './components/Settings/Settings';
 import { Bookmarks } from './components/Bookmarks/Bookmarks';
 import { NotificationCenter } from './components/NotificationCenter/NotificationCenter';
+
+// routing
+import { ProtectedRoute } from './components/Routing/ProtectedRoute';
 
 // Get config
 store.dispatch<any>(getConfig());
@@ -78,12 +80,36 @@ export const App = (): JSX.Element => {
   return (
     <>
       <BrowserRouter>
-        <Switch>
-          <Route exact path="/" component={Home} />
-          <Route path="/settings" component={Settings} />
-          <Route path="/applications" component={Apps} />
-          <Route path="/bookmarks" component={Bookmarks} />
-        </Switch>
+          <Routes>
+            {/* Public route */}
+            <Route path="/" element={<Home />} />
+
+            {/* Protected Routes */}
+            <Route
+              path="/applications"
+              element={
+                <ProtectedRoute>
+                  <Apps />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookmarks"
+              element={
+                <ProtectedRoute>
+                  <Bookmarks />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/*"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
       </BrowserRouter>
       <NotificationCenter />
     </>
