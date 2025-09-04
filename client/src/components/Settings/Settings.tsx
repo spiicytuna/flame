@@ -1,79 +1,91 @@
-import { NavLink, Link, Switch, Route } from 'react-router-dom';
+import { NavLink, Link, Routes, Route } from 'react-router-dom';
 
 // Redux
 import { useSelector } from 'react-redux';
 import { State } from '../../store/reducers';
 
-// Typescript
-import { Route as SettingsRoute } from '../../interfaces';
-
 // CSS
 import classes from './Settings.module.css';
 
 // Components
-import { Themer } from './Themer/Themer';
-import { WeatherSettings } from './WeatherSettings/WeatherSettings';
-import { UISettings } from './UISettings/UISettings';
-import { AppDetails } from './AppDetails/AppDetails';
-import { StyleSettings } from './StyleSettings/StyleSettings';
+import { Container } from '../UI';
 import { GeneralSettings } from './GeneralSettings/GeneralSettings';
+import { UISettings } from './UISettings/UISettings';
+import { WeatherSettings } from './WeatherSettings/WeatherSettings';
 import { DockerSettings } from './DockerSettings/DockerSettings';
-import { ProtectedRoute } from '../Routing/ProtectedRoute';
-
-// UI
-import { Container, Headline } from '../UI';
-
-// Data
-import clientRoutes from './settings.json';
+import { Themer } from './Themer/Themer';
+import { AppDetails } from './AppDetails/AppDetails';
+import { AuthForm } from './AppDetails/AuthForm/AuthForm';
 
 export const Settings = (): JSX.Element => {
-  const routes = clientRoutes.routes;
-
   const { isAuthenticated } = useSelector((state: State) => state.auth);
-
-  const tabs = isAuthenticated ? routes : routes.filter((r) => !r.authRequired);
 
   return (
     <Container>
-      <Headline title="Settings" subtitle={<Link to="/">Go back</Link>} />
-      <div className={classes.Settings}>
-        {/* NAVIGATION MENU */}
-        <nav className={classes.SettingsNav}>
-          {tabs.map(({ name, dest }: SettingsRoute, idx) => (
+      {!isAuthenticated ? (
+        <AuthForm />
+      ) : (
+        <div className={classes.Settings}>
+          <div className={classes.SettingsNav}>
+            <h2 className={classes.SettingsNavTitle}>Settings</h2>
             <NavLink
+              to="/settings/app"
               className={classes.SettingsNavLink}
-              activeClassName={classes.SettingsNavLinkActive}
-              exact
-              to={dest}
-              key={idx}
+              activeClassName={classes.Active}
             >
-              {name}
+              General
             </NavLink>
-          ))}
-        </nav>
-
-        {/* ROUTES */}
-        <section className={classes.SettingsContent}>
-          <Switch>
-            <Route exact path="/settings" component={Themer} />
-            <ProtectedRoute
-              path="/settings/weather"
-              component={WeatherSettings}
-            />
-            <ProtectedRoute
-              path="/settings/general"
-              component={GeneralSettings}
-            />
-            <ProtectedRoute path="/settings/interface" component={UISettings} />
-            <ProtectedRoute
-              path="/settings/docker"
-              component={DockerSettings}
-            />
-            <ProtectedRoute path="/settings/css" component={StyleSettings} />
-            <Route path="/settings/app" component={AppDetails} />
-          </Switch>
-        </section>
-      </div>
+            <NavLink
+              to="/settings/ui"
+              className={classes.SettingsNavLink}
+              activeClassName={classes.Active}
+            >
+              Interface
+            </NavLink>
+            <NavLink
+              to="/settings/weather"
+              className={classes.SettingsNavLink}
+              activeClassName={classes.Active}
+            >
+              Weather
+            </NavLink>
+            <NavLink
+              to="/settings/docker"
+              className={classes.SettingsNavLink}
+              activeClassName={classes.Active}
+            >
+              Docker
+            </NavLink>
+            <NavLink
+              to="/settings/theme"
+              className={classes.SettingsNavLink}
+              activeClassName={classes.Active}
+            >
+              Theme
+            </NavLink>
+            <NavLink
+              to="/settings/details"
+              className={classes.SettingsNavLink}
+              activeClassName={classes.Active}
+            >
+              About
+            </NavLink>
+            <Link to="/" className={classes.GoBack}>
+              Go back
+            </Link>
+          </div>
+          <div className={classes.SettingsContent}>
+            <Routes>
+              <Route path="/app" element={<GeneralSettings />} />
+              <Route path="/ui" element={<UISettings />} />
+              <Route path="/weather" element={<WeatherSettings />} />
+              <Route path="/docker" element={<DockerSettings />} />
+              <Route path="/theme" element={<Themer />} />
+              <Route path="/details" element={<AppDetails />} />
+            </Routes>
+          </div>
+        </div>
+      )}
     </Container>
   );
 };
