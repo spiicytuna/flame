@@ -53,9 +53,7 @@ export const App = (): JSX.Element => {
             <Route
               path="/settings/*"
               element={
-                <ProtectedRoute>
                   <Settings />
-                </ProtectedRoute>
               }
             />
           </Routes>
