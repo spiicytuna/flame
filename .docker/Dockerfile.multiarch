@@ -1,31 +1,55 @@
-FROM node:16-alpine3.11 as builder
+# syntax=docker/dockerfile:1.7
+
+### Build
+FROM node:22-alpine AS builder
+
+# sqlite3 reqs
+RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
 
+# Server deps
 COPY package*.json ./
+ENV NODE_ENV=production
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --omit=dev
 
-RUN apk --no-cache --virtual build-dependencies add python python3 make g++ \
-    && npm install --production
+# Client deps
+WORKDIR /app/client
+COPY client/package*.json ./
 
-COPY . .    
-
-RUN mkdir -p ./public ./data \
-    && cd ./client \
-    && npm install --production \
-    && npm run build \
-    && cd .. \
-    && mv ./client/build/* ./public \
-    && rm -rf ./client
-
-FROM node:16-alpine3.11
-
-COPY --from=builder /app /app
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --legacy-peer-deps
+COPY client/ ./
+RUN npm run build
 
 WORKDIR /app
+COPY . .
 
-EXPOSE 5005
+RUN mkdir -p /app/public && \
+    [ -d /app/client/dist ] && cp -r /app/client/dist/* /app/public/ || true && \
+    rm -rf /app/client
+
+### Runtime
+FROM node:22-alpine
+
+# Runtime libs for sqlite3 native addon
+# - sqlite-libs: libsqlite3.so
+# - libstdc++: C++ runtime needed by compiled addon
+RUN apk add --no-cache sqlite-libs libstdc++ curl jq
 
 ENV NODE_ENV=production
-ENV PASSWORD=flame_password
+WORKDIR /app
 
-CMD ["sh", "-c", "chown -R node /app/data && node server.js"]
+# set ownership => no root
+COPY --from=builder --chown=node:node /app /app
+RUN mkdir -p /app/data /app/log
+
+USER node
+EXPOSE 5005
+
+# health
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=5 \
+  CMD node -e "require('http').get('http://127.0.0.1:5005/health',r=>{if(r.statusCode!==200)process.exit(1)}).on('error',()=>process.exit(1))"
+
+CMD ["node", "server.js"]
