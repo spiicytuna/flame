@@ -1,4 +1,4 @@
-name: Annotate GHCR index (description from CHANGELOG)
+name: Build, Push, and Annotate GHCR Image -
 
 on:
   workflow_dispatch:
@@ -9,12 +9,8 @@ on:
         default: "dev"
         type: choice
         options: [dev, stable]
-      tag:
-        description: "Which tag to annotate (e.g. latest, dev, stable, 0.01)"
-        required: true
-        default: "latest"
       version:
-        description: "Version to read from CHANGELOG (e.g. 0.01). Leave blank to use first section."
+        description: "Version to tag (e.g. 0.01)"
         required: false
         default: ""
 
@@ -23,16 +19,19 @@ permissions:
   packages: write
 
 jobs:
-  annotate:
+  build-and-annotate:
     runs-on: ubuntu-latest
     env:
       OWNER: spiicytuna
       IMAGE: flame
     steps:
-      - name: Checkout (to read CHANGELOG.md and script)
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Buildx
+      - name: Set up QEMU for multi-platform builds
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Login to GHCR
@@ -42,63 +41,111 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Compute package name
-        id: pkg
+      - name: Generate metadata and description
+        id: meta
+        shell: bash
         run: |
-          if [[ "${{ inputs.channel }}" == "dev" ]]; then
-            echo "pkg=${{ env.IMAGE }}-dev" >> "$GITHUB_OUTPUT"
-          else
-            echo "pkg=${{ env.IMAGE }}" >> "$GITHUB_OUTPUT"
+          # Use a unique build ID for temporary tags
+          BUILD_ID=$(date +%s)
+          
+          # Determine package name
+          PKG_NAME="${{ env.IMAGE }}"
+          [[ "${{ inputs.channel }}" == "dev" ]] && PKG_NAME="${{ env.IMAGE }}-dev"
+          
+          # Build final tags
+          FINAL_TAGS=()
+          FINAL_TAGS+=( "ghcr.io/${{ env.OWNER }}/${PKG_NAME}:latest" )
+          FINAL_TAGS+=( "ghcr.io/${{ env.OWNER }}/${PKG_NAME}:${{ inputs.channel }}" )
+          if [[ -n "${{ inputs.version }}" ]]; then
+            FINAL_TAGS+=( "ghcr.io/${{ env.OWNER }}/${PKG_NAME}:${{ inputs.version }}" )
           fi
-
-      - name: Build description from CHANGELOG
-        id: desc
-        run: |
-          chmod +x .dev/desc_from_changelog.sh
-          LINE="$(.dev/desc_from_changelog.sh "${{ inputs.version }}" CHANGELOG.md || true)"
-          if [[ -z "$LINE" ]]; then
-            LINE="$(.dev/desc_from_changelog.sh "" CHANGELOG.md || true)"
-          fi
-
+          
+          # Build description from CHANGELOG for annotation
+          LINE="$(awk 'BEGIN{hit=0} /^###/ {if(hit) exit; hit=1; next} hit && NF==0 {exit} hit && /^-/{sub(/^[[:space:]]*-[[:space:]]*/,""); a[++n]=$0} END{for(i=1;i<=n;i++){printf "%s%s",(i>1?" • ":""),a[i]}}' CHANGELOG.md)"
           if [[ -n "${{ inputs.version }}" ]]; then
             TITLE="v${{ inputs.version }}"
           else
             TITLE="$(grep -m1 -E '^###[[:space:]]*v?.+' CHANGELOG.md | sed -E 's/^###[[:space:]]*//')"
-            [[ -z "$TITLE" ]] && TITLE="Flame"
           fi
-
           DESC="${TITLE}: ${LINE}"
-          DESC="$(echo "$DESC" | tr -d '\r' | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g' | sed 's/[•·–—]/-/g')"
+          DESC="$(echo "$DESC" | tr -d '\r\n' | sed -E 's/[[:space:]]+/ /g' | sed 's/[•·–—]/-/g')"
           DESC="${DESC:0:512}"
+          
+          # Set outputs for subsequent steps
+          echo "pkg_name=${PKG_NAME}" >> "$GITHUB_OUTPUT"
+          echo "final_tags=$(IFS=,; echo "${FINAL_TAGS[*]}")" >> "$GITHUB_OUTPUT"
+          echo "temp_tag_alpine=ghcr.io/${{ env.OWNER }}/${PKG_NAME}:${BUILD_ID}-alpine" >> "$GITHUB_OUTPUT"
+          echo "temp_tag_armv7=ghcr.io/${{ env.OWNER }}/${PKG_NAME}:${BUILD_ID}-armv7" >> "$GITHUB_OUTPUT"
+          echo "desc=${DESC}" >> "$GITHUB_OUTPUT"
+          
+          echo "Description: ${DESC}"
 
-          echo "desc=$DESC" >> "$GITHUB_OUTPUT"
-          echo "Using: $DESC"
+      - name: Build and push amd64/arm64 (Alpine)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.temp_tag_alpine }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ env.OWNER }}/${{ env.IMAGE }}
+            org.opencontainers.image.description=${{ steps.meta.outputs.desc }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
-      - name: Resolve digest of the tag
-        id: dig
+      - name: Build and push arm/v7 (Debian)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .docker/Dockerfile.multiarch
+          platforms: linux/arm/v7
+          push: true
+          tags: ${{ steps.meta.outputs.temp_tag_armv7 }}
+          build-args: |
+            BUILDPLATFORM=linux/amd64
+            TARGETPLATFORM=linux/arm/v7
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ env.OWNER }}/${{ env.IMAGE }}
+            org.opencontainers.image.description=${{ steps.meta.outputs.desc }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Install regctl
+        run: |
+          sudo curl -L "https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64" -o /usr/local/bin/regctl
+          sudo chmod +x /usr/local/bin/regctl
+
+      - name: Create and Push Final Manifest
         shell: bash
+        env:
+          DESCRIPTION: ${{ steps.meta.outputs.desc }}
+          FINAL_TAGS: ${{ steps.meta.outputs.final_tags }}
+          TEMP_ALPINE: ${{ steps.meta.outputs.temp_tag_alpine }}
+          TEMP_ARMV7: ${{ steps.meta.outputs.temp_tag_armv7 }}
         run: |
-          REF="ghcr.io/${{ env.OWNER }}/${{ steps.pkg.outputs.pkg }}:${{ inputs.tag }}"
-          OUT="$(docker buildx imagetools inspect "$REF")"
-          echo "$OUT"
-          DIGEST="$(awk "/^Digest:/ {print \$2; exit}" <<<"$OUT")"
-          if [[ -z "${DIGEST:-}" ]]; then
-            echo "Failed to read digest for $REF"; exit 1
-          fi
-          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
 
-      - name: Annotate index description (best-effort)
-        id: annotate
-        continue-on-error: true
-        run: |
-          REF_BASENAME="ghcr.io/${{ env.OWNER }}/${{ steps.pkg.outputs.pkg }}"
-          # Try with annotation (some Buildx versions hide this behind EXPERIMENTAL)
-          BUILDX_EXPERIMENTAL=1 docker buildx imagetools create \
-            --tag "${REF_BASENAME}:${{ inputs.tag }}" \
-            --annotation "org.opencontainers.image.description=${{ steps.desc.outputs.desc }}" \
-            "${REF_BASENAME}@${{ steps.dig.outputs.digest }}"
+          # Use the first tag as the primary reference for all operations
+          PRIMARY_TAG=$(echo "$FINAL_TAGS" | cut -d',' -f1)
+          echo "Primary manifest tag will be: ${PRIMARY_TAG}"
 
-      - name: Fallback without annotations (if needed)
-        if: steps.annotate.outcome == 'failure'
-        run: |
-          echo "Annotation not supported by this runner. Leaving image functional, just without index description."
+          # Step 1: Create the un-annotated manifest list in the registry.
+          # The 'put' command with multiple sources AUTOMATICALLY creates a manifest list.
+          echo "Creating initial un-annotated manifest..."
+          regctl manifest put "${PRIMARY_TAG}" "${TEMP_ALPINE}" "${TEMP_ARMV7}"
+
+          # Step 2: Fetch that newly created manifest, add the annotation, and push it back.
+          # This is the 'get -> modify -> put' pattern.
+          echo "Fetching manifest, adding annotation, and pushing back..."
+          regctl manifest get "${PRIMARY_TAG}" --format 'application/vnd.oci.image.index.v1+json' | \
+            jq --arg desc "${DESCRIPTION}" '.annotations = {"org.opencontainers.image.description": $desc}' | \
+            regctl manifest put "${PRIMARY_TAG}"
+
+          echo "Successfully created and pushed annotated manifest to ${PRIMARY_TAG}"
+
+          # Step 3: Tag the newly annotated manifest with the other tags.
+          IFS=',' read -ra ALL_TAGS <<< "$FINAL_TAGS"
+          for i in "${!ALL_TAGS[@]}"; do
+            if [ $i -eq 0 ]; then continue; fi # Skip the first tag, it's already done
+            echo "Applying tag: ${ALL_TAGS[$i]}"
+            regctl image copy "${PRIMARY_TAG}" "${ALL_TAGS[$i]}"
+          done
