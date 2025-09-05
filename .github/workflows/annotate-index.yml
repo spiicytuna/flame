@@ -1,0 +1,104 @@
+name: Annotate GHCR index (description from CHANGELOG)
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "stable or dev"
+        required: true
+        default: "dev"
+        type: choice
+        options: [dev, stable]
+      tag:
+        description: "Which tag to annotate (e.g. latest, dev, stable, 0.01)"
+        required: true
+        default: "latest"
+      version:
+        description: "Version to read from CHANGELOG (e.g. 0.01). Leave blank to use first section."
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  annotate:
+    runs-on: ubuntu-latest
+    env:
+      OWNER: spiicytuna
+      IMAGE: flame
+    steps:
+      - name: Checkout (to read CHANGELOG.md and script)
+        uses: actions/checkout@v4
+
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute package name
+        id: pkg
+        run: |
+          if [[ "${{ inputs.channel }}" == "dev" ]]; then
+            echo "pkg=${{ env.IMAGE }}-dev" >> "$GITHUB_OUTPUT"
+          else
+            echo "pkg=${{ env.IMAGE }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build description from CHANGELOG
+        id: desc
+        run: |
+          chmod +x .dev/desc_from_changelog.sh
+          LINE="$(.dev/desc_from_changelog.sh "${{ inputs.version }}" CHANGELOG.md || true)"
+          if [[ -z "$LINE" ]]; then
+            LINE="$(.dev/desc_from_changelog.sh "" CHANGELOG.md || true)"
+          fi
+
+          if [[ -n "${{ inputs.version }}" ]]; then
+            TITLE="v${{ inputs.version }}"
+          else
+            TITLE="$(grep -m1 -E '^###[[:space:]]*v?.+' CHANGELOG.md | sed -E 's/^###[[:space:]]*//')"
+            [[ -z "$TITLE" ]] && TITLE="Flame"
+          fi
+
+          DESC="${TITLE}: ${LINE}"
+          DESC="$(echo "$DESC" | tr -d '\r' | tr '\n' ' ' | sed -E 's/[[:space:]]+/ /g' | sed 's/[•·–—]/-/g')"
+          DESC="${DESC:0:512}"
+
+          echo "desc=$DESC" >> "$GITHUB_OUTPUT"
+          echo "Using: $DESC"
+
+      - name: Resolve digest of the tag
+        id: dig
+        shell: bash
+        run: |
+          REF="ghcr.io/${{ env.OWNER }}/${{ steps.pkg.outputs.pkg }}:${{ inputs.tag }}"
+          OUT="$(docker buildx imagetools inspect "$REF")"
+          echo "$OUT"
+          DIGEST="$(awk "/^Digest:/ {print \$2; exit}" <<<"$OUT")"
+          if [[ -z "${DIGEST:-}" ]]; then
+            echo "Failed to read digest for $REF"; exit 1
+          fi
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
+
+      - name: Annotate index description (best-effort)
+        id: annotate
+        continue-on-error: true
+        run: |
+          REF_BASENAME="ghcr.io/${{ env.OWNER }}/${{ steps.pkg.outputs.pkg }}"
+          # Try with annotation (some Buildx versions hide this behind EXPERIMENTAL)
+          BUILDX_EXPERIMENTAL=1 docker buildx imagetools create \
+            --tag "${REF_BASENAME}:${{ inputs.tag }}" \
+            --annotation "org.opencontainers.image.description=${{ steps.desc.outputs.desc }}" \
+            "${REF_BASENAME}@${{ steps.dig.outputs.digest }}"
+
+      - name: Fallback without annotations (if needed)
+        if: steps.annotate.outcome == 'failure'
+        run: |
+          echo "Annotation not supported by this runner. Leaving image functional, just without index description."
