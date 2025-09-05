@@ -1,6 +1,10 @@
 require('dotenv').config();
 const http = require('http');
 
+// Secret stuff 
+const { initializeSecret } = require('./utils/secret');
+initializeSecret();
+
 // Database
 const { connectDB } = require('./db');
 const associateModels = require('./models/associateModels');
