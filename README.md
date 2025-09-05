@@ -1,28 +1,37 @@
-# 🔥 Flame: Smart Start Page with GeoIP Weather
+# 🔥 Flame: A Smart & Dynamic Start Page
 
-**Flame** is a self-hosted homepage for your homelab or server — now enhanced with:
+**Flame** is a self-hosted homepage for your server. It is fast, lightweight, and designed for seamless integration with tools like Docker and Traefik.
 
-- 🌦 Weather based on **client IP geolocation** (automatic) with a cached lookup system
-- 💾 Fallback to custom coordinates from `config.json` as configured in GUI settings
-- 🔁 Caching logic to reduce WeatherAPI requests
-- 🗄️ External logging, including reverse proxy logic for IPs, for integration to Vector > mtail > Prometheus > Grafana
-- 🎨 Custom browser favicon.ico
-- 🐳 Docker-first deployment using the included Dockerfile
-- 🏥 Advanced health check route with debug 
+This fork enhances the original with:
+- 🌦 **Dynamic Weather**: Automatically displays local weather based on the user's IP address, with smart caching to minimize API calls
+- 🩺 **Advanced Health Checks**: A dedicated `/health` endpoint, perfect for Docker and external monitoring tools
+- 🪵 **Robust Logging**: Structured logs ready for integration e.g  **Vector, mtail, Prometheus, and Grafana**
+- 🗂️ **Application Categories**: Organize your applications into clean collapsible categories
 
 ---
 
-## 📦 Features
+## 📦 Key Features
 
-- Bookmark & application launcher
-- IP geolocation-based weather with caching
-- Light & dark themes
-- Customize favicon.ico
-- Mobile-responsive design
-- No database required — JSON file-backed
-- Secure auth with optional login
-- Traefik-friendly and ready for reverse proxy setups
-- More weather data for those who want it
+- **Application & Bookmark Dashboard**: A beautiful and simple launcher for all your services
+- **GeoIP Weather**: Automatically detects user location via IP for relevant weather, with a fallback to manually set coordinates
+- **Smart Caching**: Reduces API lookups for weather and geolocation data
+- **External Log Support**: Mount a log volume for easy parsing and integration with your monitoring pipeline
+- **Customization**:
+    - Light & Dark themes
+    - Custom `favicon.ico` support
+    - Optional third weather data column (e.g., precipitation, wind speed, UV index)
+- **Docker-First Design**:
+    - **Multi-arch image** (`linux/amd64`, `linux/arm64`) available at `ghcr.io/spiicytuna/flame:dev`
+    - Built-in, (more) advanced health checks (vs basic curl)
+- **Secure & Simple**:
+    - Optional password protection
+    - No separate database container required
+- **Traefik Ready**: Designed to work flawlessly behind a reverse proxy.
+- **Docker Logs**: include weather fetch status (cached or fresh) and other key events
+```
+[Weather] Fetching fresh data from WeatherAPI for key 76.2506,100.1140
+[Weather] Serving from cache for key 76.2506,100.1140
+```
 
 ---
 
@@ -33,20 +42,24 @@ version: "3.8"
 
 services:
   flame:
-    build:
-      context: https://github.com/spiicytuna/flame.git#feature/geoip-weather-adv-logging-and-builtin-healthcheck:.docker
-      dockerfile: Dockerfile
+    image: ghcr.io/spiicytuna/flame:dev
     container_name: flame
     restart: unless-stopped
     ports:
       - "5005:5005"
     volumes:
       - /path/to/data:/app/data
-      - /path/to/ext/log:/app/log
-      - /path/to/favicon.ico:/app/public/icons/favicon.ico
+      # - /path/to/favicon.ico:/app/public/icons/favicon.ico  #  optional change to your own favicon.co
+      # - /var/log/flame-dash:/app/log  #  optional external access.log remote logging or fail2ban
+      # - /var/run/docker.sock:/var/run/docker.sock # optional but required for Docker integration
     environment:
       - PASSWORD=changeme
-      - WEATHER_CACHE_HOURS=6
+      # - WEATHER_CACHE_HOURS=6  #  optional to cut down calls to weather api
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:5005/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
 ```
 
 ## 🌎 IP-Based Weather
@@ -82,7 +95,7 @@ To use your own favicon:
      - ./branding/favicon.ico:/app/public/icons/favicon.ico
    ```
 
-3. Rebuild or restart the container
+3. Restart the container
 
 Your favicon will now show up in the browser tab!
 
