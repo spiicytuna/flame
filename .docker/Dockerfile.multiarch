@@ -5,26 +5,10 @@ ARG TARGETPLATFORM
 ### Client build (runs on host arch)
 FROM --platform=$BUILDPLATFORM node:22-alpine AS clientbuilder
 WORKDIR /app/client
-
-# client manifest
-COPY client/package.json ./package.json
-# COPY client/package-lock.json ./package-lock.json  # if/when you add one
-
-# Install client deps (! strictness)
-RUN --mount=type=cache,target=/root/.npm \
-    npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund
-
-# Validate => framer-motion
-RUN node -e "require('fs').accessSync('node_modules/framer-motion/package.json')" \
- || npm install framer-motion motion-dom motion-utils --legacy-peer-deps --no-audit --no-fund
-
+COPY client/package*.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci --legacy-peer-deps
 COPY client/ ./
-
-# which version ??
-RUN node -p "require('./node_modules/framer-motion/package.json').version"
-
 RUN npm run build
-
 
 ### Server build (targets arm/v7)
 FROM --platform=$TARGETPLATFORM node:22-bookworm-slim AS builder
@@ -38,9 +22,9 @@ ENV NODE_ENV=production npm_config_jobs=4 npm_config_python=/usr/bin/python3
 COPY package*.json ./
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/root/.cache/node-gyp \
-    npm install --omit=dev
+    npm ci --omit=dev
 
-# server sources
+# Bring in server sources
 COPY . .
 
 # client assets => /app/public
