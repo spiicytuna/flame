@@ -1,3 +1,9 @@
+### v2.4.0 (2025-09-06)
+- Fixed secure route blocking logging in via settings
+- Fixed hardcoded JWT key (issue from orig repo: pawelmalak[#465](https://github.com/pawelmalak/flame/issues/465))
+- Updated mdi icons to newest version 7.4.xx
+- Complete security overhaul since 2023 update on original repo
+
 ### v2.3.1 (2023-07-23)
 - Fixed bug where "Open search results in the same tab" setting was not respected if "Local search" was set as primary search provider ([#270](https://github.com/pawelmalak/flame/issues/270))
 - Fixed bug where search bar had rounded input field on iOS ([#394](https://github.com/pawelmalak/flame/issues/394))
