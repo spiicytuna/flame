@@ -28,3 +28,35 @@
 .HomeSpace {
   height: 20px;
 }
+
+.toggleButton {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  transition: transform 0.2s ease-in-out;
+  transform: rotate(0deg);
+}
+
+.categoryTitle {
+  display: flex;
+  align-items: center;
+
+  margin: 0 0 0.3rem;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--color-accent);
+  text-transform: uppercase;
+}
+
+.SmallIcon {
+  width: 30px;
+  height: 30px;
+  margin-right: 3px;
+  vertical-align: middle;
+}
+
+.isExpanded {
+  transform: rotate(90deg);
+}

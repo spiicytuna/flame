@@ -22,7 +22,6 @@ const initialState: CategoryState = {
 export const getCategoriesForSection =
   (section: 'bookmarks' | 'apps') =>
   async (dispatch: Dispatch) => {
-    // dispatch({ type: ActionType.getCategories }); // REMOVED
     try {
       const res = await axios.get<ApiResponse<Category[]>>(
         `/api/categories?section=${section}`,
@@ -95,6 +94,25 @@ export const categoriesReducer = (
         ),
       };
 
+    case ActionType.updateCategoryCollapseState:
+      return {
+        ...state,
+        categories: state.categories.map((category) =>
+          category.id === action.payload.categoryId
+            ? { ...category, isCollapsed: action.payload.isCollapsed }
+            : category
+        ),
+      };
+
+    case ActionType.expandAllCategories:
+      return {
+        ...state,
+        categories: state.categories.map((category) => ({
+          ...category,
+          isCollapsed: false,
+        })),
+      };
+
     case ActionType.deleteCategory:
       return {
         ...state,
@@ -104,8 +122,6 @@ export const categoriesReducer = (
     case ActionType.setEditCategory:
       return { ...state, categoryInEdit: action.payload };
       
-    // ... etc.
-
     default:
       return state;
   }

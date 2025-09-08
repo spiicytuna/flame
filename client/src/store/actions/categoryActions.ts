@@ -1,18 +1,15 @@
 import { ActionType } from '../action-types';
 import { App, Category } from '../../interfaces';
 
-// This is a general action for starting any category fetch
 export interface GetCategories {
   type: ActionType.getCategories;
 }
 
-// This is for when the fetch succeeds
 export interface GetCategoriesSuccess {
   type: ActionType.getCategoriesSuccess;
-  payload: Category[]; // The payload is the array of categories
+  payload: Category[]; 
 }
 
-// This is for when the fetch fails
 export interface GetCategoriesError {
   type: ActionType.getCategoriesError;
   payload: string;
@@ -53,7 +50,16 @@ export interface SortCategories {
   payload: string;
 }
 
-// This action is special because it delivers multiple data types
+export interface UpdateCategoryCollapseState {
+  type: ActionType.updateCategoryCollapseState;
+  payload: { categoryId: number; isCollapsed: boolean };
+}
+
+export interface ExpandAllCategories {
+  type: ActionType.expandAllCategories;
+}
+
+// special => delivers multiple data types
 export interface FetchHomepageDataSuccess {
   type: ActionType.fetchHomepageDataSuccess;
   payload: {
@@ -62,7 +68,6 @@ export interface FetchHomepageDataSuccess {
   };
 }
 
-// This is the final "union" type that the reducer will use
 export type CategoryAction =
   | FetchHomepageDataSuccess
   | GetCategories
@@ -74,4 +79,6 @@ export type CategoryAction =
   | SetEditCategory
   | PinCategory
   | ReorderCategories
-  | SortCategories;
+  | SortCategories
+  | UpdateCategoryCollapseState
+  | ExpandAllCategories;

@@ -32,4 +32,11 @@ export interface Config {
   isKilometer: boolean;
   weatherData: WeatherData;
   hideDate: boolean;
+  weatherMode: 'geoip' | 'fixed';
+  showExtraWeatherColumn: boolean;
+  extraWeatherTop: string;
+  extraWeatherBottom: string;
+  collapseCategories?: boolean;
+  categoryCollapseIcon?: string;
+  categoryCollapseIconHover?: string;
 }
