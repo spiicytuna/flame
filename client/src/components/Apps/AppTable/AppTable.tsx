@@ -1,11 +1,24 @@
 import { Fragment, useState, useEffect } from 'react';
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from 'react-beautiful-dnd';
 import { Link } from 'react-router-dom';
+
+// DND Kit Imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Redux
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,9 +29,64 @@ import { actionCreators } from '../../../store';
 // Typescript
 import { App } from '../../../interfaces';
 
-// Other
+// UI
 import { Message, Table } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
+
+// Props for the new Sortable Row component
+interface SortableAppRowProps {
+  app: App;
+  deleteHandler: (id: number, name: string) => void;
+  updateHandler: (id: number) => void;
+  pinHanlder: (id: number) => void;
+  changeVisibilty: (id: number) => void;
+}
+
+// New component for the sortable table row
+const SortableAppRow = ({
+  app,
+  deleteHandler,
+  updateHandler,
+  pinHanlder,
+  changeVisibilty,
+}: SortableAppRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: app.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    border: isDragging ? '1px solid var(--color-accent)' : 'none',
+    borderRadius: '4px',
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <td style={{ width: '200px' }}>{app.name}</td>
+      <td style={{ width: '200px' }}>{app.url}</td>
+      <td style={{ width: '200px' }}>{app.icon}</td>
+      <td style={{ width: '200px' }}>
+        {app.isPublic ? 'Visible' : 'Hidden'}
+      </td>
+
+      {!isDragging && (
+        <TableActions
+          entity={app}
+          deleteHandler={deleteHandler}
+          updateHandler={updateHandler}
+          pinHanlder={pinHanlder}
+          changeVisibilty={changeVisibilty}
+        />
+      )}
+    </tr>
+  );
+};
 
 interface Props {
   openFormForUpdating: (app: App) => void;
@@ -41,7 +109,15 @@ export const AppTable = (props: Props): JSX.Element => {
     setLocalApps([...apps]);
   }, [apps]);
 
-  const dragEndHanlder = (result: DropResult): void => {
+  // DND Kit sensors for pointer and keyboard accessibility
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
     if (config.useOrdering !== 'orderId') {
       createNotification({
         title: 'Error',
@@ -49,17 +125,18 @@ export const AppTable = (props: Props): JSX.Element => {
       });
       return;
     }
+    
+    const { active, over } = event;
 
-    if (!result.destination) {
-      return;
+    if (over && active.id !== over.id) {
+      const oldIndex = localApps.findIndex((a) => a.id === active.id);
+      const newIndex = localApps.findIndex((a) => a.id === over.id);
+
+      const reordered = arrayMove(localApps, oldIndex, newIndex);
+
+      setLocalApps(reordered);
+      reorderApps(reordered);
     }
-
-    const tmpApps = [...localApps];
-    const [movedApp] = tmpApps.splice(result.source.index, 1);
-    tmpApps.splice(result.destination.index, 0, movedApp);
-
-    setLocalApps(tmpApps);
-    reorderApps(tmpApps);
   };
 
   // Action handlers
@@ -99,62 +176,29 @@ export const AppTable = (props: Props): JSX.Element => {
         )}
       </Message>
 
-      <DragDropContext onDragEnd={dragEndHanlder}>
-        <Droppable droppableId="apps">
-          {(provided) => (
-            <Table
-              headers={['Name', 'URL', 'Icon', 'Visibility', 'Actions']}
-              innerRef={provided.innerRef}
-            >
-              {localApps.map((app: App, index): JSX.Element => {
-                return (
-                  <Draggable
-                    key={app.id}
-                    draggableId={app.id.toString()}
-                    index={index}
-                  >
-                    {(provided, snapshot) => {
-                      const style = {
-                        border: snapshot.isDragging
-                          ? '1px solid var(--color-accent)'
-                          : 'none',
-                        borderRadius: '4px',
-                        ...provided.draggableProps.style,
-                      };
-
-                      return (
-                        <tr
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          ref={provided.innerRef}
-                          style={style}
-                        >
-                          <td style={{ width: '200px' }}>{app.name}</td>
-                          <td style={{ width: '200px' }}>{app.url}</td>
-                          <td style={{ width: '200px' }}>{app.icon}</td>
-                          <td style={{ width: '200px' }}>
-                            {app.isPublic ? 'Visible' : 'Hidden'}
-                          </td>
-
-                          {!snapshot.isDragging && (
-                            <TableActions
-                              entity={app}
-                              deleteHandler={deleteAppHandler}
-                              updateHandler={updateAppHandler}
-                              pinHanlder={pinAppHandler}
-                              changeVisibilty={changeAppVisibiltyHandler}
-                            />
-                          )}
-                        </tr>
-                      );
-                    }}
-                  </Draggable>
-                );
-              })}
-            </Table>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <Table headers={['Name', 'URL', 'Icon', 'Visibility', 'Actions']}>
+          <SortableContext
+            items={localApps.map((a) => a.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {localApps.map((app: App) => (
+              <SortableAppRow
+                key={app.id}
+                app={app}
+                deleteHandler={deleteAppHandler}
+                updateHandler={updateAppHandler}
+                pinHanlder={pinAppHandler}
+                changeVisibilty={changeAppVisibiltyHandler}
+              />
+            ))}
+          </SortableContext>
+        </Table>
+      </DndContext>
     </Fragment>
   );
 };

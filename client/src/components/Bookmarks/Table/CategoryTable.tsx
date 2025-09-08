@@ -1,11 +1,23 @@
 import { useState, useEffect, Fragment } from 'react';
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from 'react-beautiful-dnd';
 import { Link } from 'react-router-dom';
+
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Redux
 import { useDispatch, useSelector } from 'react-redux';
@@ -19,6 +31,57 @@ import { Bookmark, Category } from '../../../interfaces';
 // UI
 import { Message, Table } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
+
+// props => sort row component
+interface SortableCategoryRowProps {
+  category: Category;
+  deleteHandler: (id: number, name: string) => void;
+  updateHandler: (id: number) => void;
+  pinHanlder: (id: number) => void;
+  changeVisibilty: (id: number) => void;
+}
+
+const SortableCategoryRow = ({
+  category,
+  deleteHandler,
+  updateHandler,
+  pinHanlder,
+  changeVisibilty,
+}: SortableCategoryRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    border: isDragging ? '1px solid var(--color-accent)' : 'none',
+    borderRadius: '4px',
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <td style={{ width: '300px' }}>{category.name}</td>
+      <td style={{ width: '300px' }}>
+        {category.isPublic ? 'Visible' : 'Hidden'}
+      </td>
+      {!isDragging && (
+        <TableActions
+          entity={category}
+          deleteHandler={deleteHandler}
+          updateHandler={updateHandler}
+          pinHanlder={pinHanlder}
+          changeVisibilty={changeVisibilty}
+        />
+      )}
+    </tr>
+  );
+};
 
 interface Props {
   openFormForUpdating: (data: Category | Bookmark) => void;
@@ -45,9 +108,17 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
   useEffect(() => {
     setLocalCategories([...categories]);
   }, [categories]);
+  
+  // mouse+keyboard
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Drag and drop handler
-  const dragEndHanlder = (result: DropResult): void => {
+  const handleDragEnd = (event: DragEndEvent) => {
     if (config.useOrdering !== 'orderId') {
       createNotification({
         title: 'Error',
@@ -56,16 +127,17 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
       return;
     }
 
-    if (!result.destination) {
-      return;
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = localCategories.findIndex((c) => c.id === active.id);
+      const newIndex = localCategories.findIndex((c) => c.id === over.id);
+      
+      const reordered = arrayMove(localCategories, oldIndex, newIndex);
+      
+      setLocalCategories(reordered);
+      reorderCategories(reordered);
     }
-
-    const tmpCategories = [...localCategories];
-    const [movedCategory] = tmpCategories.splice(result.source.index, 1);
-    tmpCategories.splice(result.destination.index, 0, movedCategory);
-
-    setLocalCategories(tmpCategories);
-    reorderCategories(tmpCategories);
   };
 
   // Action handlers
@@ -73,10 +145,7 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     const proceed = window.confirm(
       `Are you sure you want to delete ${name}? It will delete ALL assigned bookmarks`
     );
-
-    if (proceed) {
-      deleteCategory(id);
-    }
+    if (proceed) deleteCategory(id);
   };
 
   const updateCategoryHandler = (id: number) => {
@@ -107,60 +176,29 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
         )}
       </Message>
 
-      <DragDropContext onDragEnd={dragEndHanlder}>
-        <Droppable droppableId="categories">
-          {(provided) => (
-            <Table
-              headers={['Name', 'Visibility', 'Actions']}
-              innerRef={provided.innerRef}
-            >
-              {localCategories.map((category, index): JSX.Element => {
-                return (
-                  <Draggable
-                    key={category.id}
-                    draggableId={category.id.toString()}
-                    index={index}
-                  >
-                    {(provided, snapshot) => {
-                      const style = {
-                        border: snapshot.isDragging
-                          ? '1px solid var(--color-accent)'
-                          : 'none',
-                        borderRadius: '4px',
-                        ...provided.draggableProps.style,
-                      };
-
-                      return (
-                        <tr
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          ref={provided.innerRef}
-                          style={style}
-                        >
-                          <td style={{ width: '300px' }}>{category.name}</td>
-                          <td style={{ width: '300px' }}>
-                            {category.isPublic ? 'Visible' : 'Hidden'}
-                          </td>
-
-                          {!snapshot.isDragging && (
-                            <TableActions
-                              entity={category}
-                              deleteHandler={deleteCategoryHandler}
-                              updateHandler={updateCategoryHandler}
-                              pinHanlder={pinCategoryHandler}
-                              changeVisibilty={changeCategoryVisibiltyHandler}
-                            />
-                          )}
-                        </tr>
-                      );
-                    }}
-                  </Draggable>
-                );
-              })}
-            </Table>
-          )}
-        </Droppable>
-      </DragDropContext>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <Table headers={['Name', 'Visibility', 'Actions']}>
+          <SortableContext
+            items={localCategories.map((c) => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {localCategories.map((category) => (
+              <SortableCategoryRow
+                key={category.id}
+                category={category}
+                deleteHandler={deleteCategoryHandler}
+                updateHandler={updateCategoryHandler}
+                pinHanlder={pinCategoryHandler}
+                changeVisibilty={changeCategoryVisibiltyHandler}
+              />
+            ))}
+          </SortableContext>
+        </Table>
+      </DndContext>
     </Fragment>
   );
 };
