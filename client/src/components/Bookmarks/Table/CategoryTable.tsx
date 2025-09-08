@@ -1,11 +1,24 @@
-import { useState, useEffect, Fragment } from 'react';
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from 'react-beautiful-dnd';
+import { useState, useEffect, Fragment, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+
+// react-beautiful-dnd => @dnd-kit
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Redux
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,14 +27,77 @@ import { bindActionCreators } from 'redux';
 import { actionCreators } from '../../../store';
 
 // Typescript
-import { Bookmark, Category } from '../../../interfaces';
+import { Category } from '../../../interfaces';
 
 // UI
-import { Message, Table } from '../../UI';
+import { Message } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
 
+// CSS Module import
+import styles from './CategoryTable.module.css';
+
+// react-beautiful-dnd => @dnd-kit
+interface SortableRowProps {
+  category: Category;
+  deleteHandler: (id: number, name: string) => void;
+  updateHandler: (category: Category) => void;
+  pinHandler: (id: number) => void;
+  changeVisibilityHandler: (id: number) => void;
+}
+
+const SortableCategoryRow = ({
+  category,
+  deleteHandler,
+  updateHandler,
+  pinHandler,
+  changeVisibilityHandler,
+}: SortableRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: category.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    border: isDragging ? '1px solid var(--color-accent)' : 'none',
+    borderRadius: '4px',
+  };
+
+  // Using the reverted "working but reversed" logic for consistency
+  const entityForActions = {
+    ...category,
+    isPinned: Boolean((category as any).isPinned),
+    isPublic: Boolean((category as any).isPublic),
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <td>{category.name}</td>
+      <td>{category.abbreviation ?? '—'}</td>
+      <td>{entityForActions.isPublic ? 'Visible' : 'Hidden'}</td>
+      <td onPointerDown={(e) => e.stopPropagation()}>
+        {!isDragging && (
+          <TableActions
+            entity={entityForActions}
+            deleteHandler={deleteHandler}
+            updateHandler={() => updateHandler(entityForActions as Category)}
+            // Using the typo'd prop name that <TableActions> expects
+            pinHanlder={pinHandler}
+            changeVisibilty={changeVisibilityHandler}
+          />
+        )}
+      </td>
+    </tr>
+  );
+};
+
 interface Props {
-  openFormForUpdating: (data: Category | Bookmark) => void;
+  openFormForUpdating: (data: Category) => void;
 }
 
 export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
@@ -30,10 +106,10 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     categories: { categories: allCategories },
   } = useSelector((state: State) => state);
 
-  // Create a new list that is filtered for ONLY bookmark categories
-  const categories = (allCategories || []).filter(
-    (category) => category.section === 'bookmarks'
-  );
+  // Create a new list that is filtered for ONLY bookmark categories  
+  const categories = useMemo(() => (allCategories || [])
+    .filter((category) => category.section === 'bookmarks')
+    .sort((a, b) => a.orderId - b.orderId), [allCategories]);
 
   const dispatch = useDispatch();
   const {
@@ -46,13 +122,21 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
 
   const [localCategories, setLocalCategories] = useState<Category[]>([]);
 
-  // Copy categories array safely
+  // Mirror store → local state
   useEffect(() => {
-    setLocalCategories([...(categories ?? [])]);
+    setLocalCategories(categories);
   }, [categories]);
 
-  // Drag and drop handler
-  const dragEndHandler = (result: DropResult): void => {
+  // react-beautiful-dnd => @dnd-kit
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // @dnd-kit => event object
+  const handleDragEnd = (event: DragEndEvent) => {
     if (config.useOrdering !== 'orderId') {
       createNotification({
         title: 'Error',
@@ -60,14 +144,18 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
       });
       return;
     }
-    if (!result.destination) return;
 
-    const tmp = [...localCategories];
-    const [moved] = tmp.splice(result.source.index, 1);
-    tmp.splice(result.destination.index, 0, moved);
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
+      return;
+    }
 
-    setLocalCategories(tmp);
-    reorderCategories(tmp);
+    const oldIndex = localCategories.findIndex((c) => c.id === active.id);
+    const newIndex = localCategories.findIndex((c) => c.id === over.id);
+    const reordered = arrayMove(localCategories, oldIndex, newIndex);
+    
+    setLocalCategories(reordered); 
+    reorderCategories(reordered);
   };
 
   // Action handlers
@@ -83,12 +171,18 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
   };
 
   const pinCategoryHandler = (id: number) => {
-    const category = (categories ?? []).find((c) => c.id === id) as Category;
-    pinCategory(category);
+    const categoryIndex = localCategories.findIndex((c) => c.id === id);
+    if (categoryIndex > -1) {
+      const category = localCategories[categoryIndex];
+      pinCategory(category);
+      const updatedCategories = [...localCategories];
+      updatedCategories[categoryIndex] = { ...category, isPinned: !category.isPinned };
+      setLocalCategories(updatedCategories);
+    }
   };
 
   const changeCategoryVisibilityHandler = (id: number) => {
-    const category = (categories ?? []).find((c) => c.id === id) as Category;
+    const category = localCategories.find((c) => c.id === id) as Category;
     updateCategory(id, { ...category, isPublic: !category.isPublic });
   };
 
@@ -105,69 +199,39 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
         )}
       </Message>
 
-      <DragDropContext onDragEnd={dragEndHandler}>
-        <Droppable droppableId="categories">
-          {(provided) => (
-            <Table
-              headers={['Name', 'Abbrev', 'Visibility', 'Actions']}
-              innerRef={provided.innerRef}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Abbrev</th>
+              <th>Visibility</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <SortableContext
+              items={localCategories.map((c) => c.id)}
+              strategy={verticalListSortingStrategy}
             >
-              {localCategories.map((category, index) => (
-                <Draggable
+              {localCategories.map((category) => (
+                <SortableCategoryRow
                   key={category.id}
-                  draggableId={category.id.toString()}
-                  index={index}
-                >
-                  {(providedDraggable, snapshot) => {
-                    const style = {
-                      border: snapshot.isDragging
-                        ? '1px solid var(--color-accent)'
-                        : 'none',
-                      borderRadius: '4px',
-                      ...(providedDraggable.draggableProps.style as object),
-                    };
-
-                    // 🔧 Normalize numeric flags to booleans so they fit TableActions' Entity type
-                    const entityForActions = {
-                      ...category,
-                      isPinned: Boolean((category as any).isPinned),
-                      isPublic: Boolean((category as any).isPublic),
-                    };
-
-                    return (
-                      <tr
-                        {...providedDraggable.draggableProps}
-                        {...providedDraggable.dragHandleProps}
-                        ref={providedDraggable.innerRef}
-                        style={style}
-                      >
-                        <td style={{ width: '300px' }}>{category.name}</td>
-			<td style={{ width: '120px' }}>{category.abbreviation ?? '—'}</td>
-                        <td style={{ width: '300px' }}>
-                          {entityForActions.isPublic ? 'Visible' : 'Hidden'}
-                        </td>
-
-                        {!snapshot.isDragging && (
-			  <TableActions
-			    entity={entityForActions} // cat obj for cur row
-			    deleteHandler={deleteCategoryHandler}
-			    updateHandler={() => updateCategoryHandler(entityForActions as Category)}
-			    pinHanlder={pinCategoryHandler}
-			    changeVisibilty={changeCategoryVisibilityHandler}
-			  />
-                        )}
-                      </tr>
-                    );
-                  }}
-                </Draggable>
+                  category={category}
+                  deleteHandler={deleteCategoryHandler}
+                  updateHandler={updateCategoryHandler}
+                  pinHandler={pinCategoryHandler}
+                  changeVisibilityHandler={changeCategoryVisibilityHandler}
+                />
               ))}
-
-              {/* required placeholder for react-beautiful-dnd */}
-              {provided.placeholder}
-            </Table>
-          )}
-        </Droppable>
-      </DragDropContext>
+            </SortableContext>
+          </tbody>
+        </table>
+      </DndContext>
     </Fragment>
   );
 };
