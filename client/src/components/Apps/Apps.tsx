@@ -27,7 +27,7 @@ import { CategoryForm } from './CategoryForm/CategoryForm';
 import { AppCategoryTable } from './CategoryTable/CategoryTable';
 
 // Utils
-import { applyAuth } from '../../utility'; 
+import { applyAuth } from '../../utility';
 
 function usePrevious<T>(value: T): T | undefined {
   const ref = useRef<T>();
@@ -85,14 +85,14 @@ export const Apps = (props: Props): JSX.Element => {
   const [didInitCollapse, setDidInitCollapse] = useState(false);
   const [collapseState, setCollapseState] = useState<Record<number, boolean>>({});
   const [hoveredId, setHoveredId] = useState<number | null>(null);
-  const prevConfig = usePrevious(config);
+//  const prevConfig = usePrevious(config);
 
   // only the cats for Apps
   const appCategories = useMemo(
     () => (allCategories || []).filter((c: any) => c.section === 'apps'),
     [allCategories],
   );
-  
+
   // apps after we have categories
   useEffect(() => {
     const loadApps = async () => {
@@ -125,6 +125,26 @@ export const Apps = (props: Props): JSX.Element => {
       setCategoryModalIsOpen(false);
     }
   }, [isAuthenticated]);
+
+  const prevShowCategoryTable = usePrevious(showCategoryTable);
+  const prevCategoryInEdit = usePrevious(categoryInEdit);
+
+  useEffect(() => {
+    // trans => showing table => hiding
+    if (prevShowCategoryTable && !showCategoryTable) {
+      // ...then refresh the data to get the new category order.
+      fetchHomepageData();
+    }
+  }, [showCategoryTable, prevShowCategoryTable, fetchHomepageData]);
+
+  // refresh after editing apps within a cat
+  useEffect(() => {
+    // If we just transitioned from editing apps in a category to the main view...
+    if (prevCategoryInEdit && !categoryInEdit) {
+      // ...then refresh the data to get the new app order.
+      fetchHomepageData();
+    }
+  }, [categoryInEdit, prevCategoryInEdit, fetchHomepageData]);
 
   // db handler => collapse state
   const toggleCollapsed = async (catId: number) => {
@@ -169,7 +189,7 @@ export const Apps = (props: Props): JSX.Element => {
     setIsInCategoryUpdate(true);
     setCategoryModalIsOpen(true);
   };
-  
+
   const toggleCategoryModal = (): void => setCategoryModalIsOpen((s) => !s);
 
   const isEditing = showCategoryTable || categoryInEdit;
@@ -212,7 +232,7 @@ export const Apps = (props: Props): JSX.Element => {
             handler={openFormForAddingCategory}
           />
 	  <ActionButton name="Add Application" icon="mdiPlusBox" handler={openCreateApp} />
-	  
+
           <ActionButton
             name={showCategoryTable ? 'Done Editing Categories' : 'Edit Categories'}
             icon="mdiPencil"
@@ -223,7 +243,7 @@ export const Apps = (props: Props): JSX.Element => {
           />
         </div>
       )}
-     
+
       {isAuthenticated && !showCategoryTable && !categoryInEdit && appCategories.length > 0 ? (
         <Message isPrimary={false}>
           Click on category name to edit its applications
