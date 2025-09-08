@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState, useEffect, useMemo, Fragment, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 // Redux
@@ -14,7 +14,8 @@ import type { App as AppModel, Category } from '../../interfaces';
 import classes from './Apps.module.css';
 
 // UI
-import { Headline, Spinner, ActionButton, Modal, Container, Message } from '../UI';
+import { Icon, Headline, Spinner, ActionButton, Modal, Container, Message } from '../UI';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Subcomponents
 import { AppGrid } from './AppGrid/AppGrid';
@@ -24,6 +25,37 @@ import { AppTable } from './AppTable/AppTable';
 // Category modal + table (for Applications)
 import { CategoryForm } from './CategoryForm/CategoryForm';
 import { AppCategoryTable } from './CategoryTable/CategoryTable';
+
+// Utils
+import { applyAuth } from '../../utility'; 
+
+function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<T>();
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+}
+
+const CollapseToggle = ({
+  isHovered,
+  config,
+}: {
+  isHovered: boolean;
+  config: State['config']['config'];
+}) => {
+  const iconName = isHovered
+    ? config.categoryCollapseIconHover || 'mdiChevronRightCircleOutline'
+    : config.categoryCollapseIcon || 'mdiChevronRight';
+
+  return (
+    <Icon
+      icon={iconName}
+      color={isHovered ? 'var(--color-primary)' : 'var(--color-accent)'}
+      className={classes.SmallIcon}
+    />
+  );
+};
 
 interface Props {
   searching: boolean;
@@ -35,11 +67,12 @@ export const Apps = (props: Props): JSX.Element => {
     apps: { apps },
     auth: { isAuthenticated },
     categories: { categories: allCategories, categoryInEdit: prefilledCategory },
+    config: { config },
   } = useSelector((state: State) => state);
 
   // Bind actions
   const dispatch = useDispatch();
-  const { getApps, setEditApp, setEditCategory } = bindActionCreators(actionCreators, dispatch);
+  const { getApps, setEditApp, setEditCategory, updateCategoryCollapseState, fetchHomepageData, } = bindActionCreators(actionCreators, dispatch);
 
   // Local UI state
   const [isAppsLoading, setIsAppsLoading] = useState(false);
@@ -49,10 +82,15 @@ export const Apps = (props: Props): JSX.Element => {
   const [isInCategoryUpdate, setIsInCategoryUpdate] = useState(false);
   const [showCategoryTable, setShowCategoryTable] = useState(false);
 
+  const [didInitCollapse, setDidInitCollapse] = useState(false);
+  const [collapseState, setCollapseState] = useState<Record<number, boolean>>({});
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
+  const prevConfig = usePrevious(config);
+
   // only the cats for Apps
   const appCategories = useMemo(
     () => (allCategories || []).filter((c: any) => c.section === 'apps'),
-    [allCategories]
+    [allCategories],
   );
   
   // apps after we have categories
@@ -67,6 +105,17 @@ export const Apps = (props: Props): JSX.Element => {
     loadApps();
   }, [apps.length, appCategories, getApps]);
 
+  // collapse state => fetched data
+  useEffect(() => {
+    if (!didInitCollapse && appCategories.length > 0) {
+      const initialState = Object.fromEntries(
+        appCategories.map((cat) => [cat.id, cat.isCollapsed ?? false]),
+      );
+      setCollapseState(initialState);
+      setDidInitCollapse(true);
+    }
+  }, [appCategories, didInitCollapse]);
+
   // Reset edit UIs when auth changes
   useEffect(() => {
     if (!isAuthenticated) {
@@ -77,7 +126,27 @@ export const Apps = (props: Props): JSX.Element => {
     }
   }, [isAuthenticated]);
 
-  // Handlers: App form
+  // db handler => collapse state
+  const toggleCollapsed = async (catId: number) => {
+    const newState = !collapseState[catId];
+    setCollapseState((prev) => ({ ...prev, [catId]: newState }));
+
+    try {
+      await fetch(`/api/categories/${catId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...applyAuth(),
+        },
+        body: JSON.stringify({ isCollapsed: newState }),
+      });
+      dispatch(updateCategoryCollapseState(catId, newState));
+    } catch (err) {
+      console.error(`Failed to update category ${catId}:`, err);
+    }
+  };
+
+  // handlers: app form
   const openCreateApp = (): void => {
     setEditApp(null);
     setModalIsOpen(true);
@@ -90,13 +159,13 @@ export const Apps = (props: Props): JSX.Element => {
 
   // handlers: cat form
   const openFormForAddingCategory = (): void => {
-    setEditCategory(null); // Clear any old data
+    setEditCategory(null); // clear old
     setIsInCategoryUpdate(false);
     setCategoryModalIsOpen(true);
   };
 
   const openFormForUpdatingCategory = (_category: Category): void => {
-    setEditCategory(_category); // Set category in Redux for the form to use
+    setEditCategory(_category); // Set category => Redux => form
     setIsInCategoryUpdate(true);
     setCategoryModalIsOpen(true);
   };
@@ -188,23 +257,61 @@ export const Apps = (props: Props): JSX.Element => {
                   .map((cat) => {
                     const list = (apps || []).filter((a) => a.categoryId === cat.id);
                     if (list.length === 0) return null;
+
+                    const isCollapsed = collapseState[cat.id] ?? false;
+                    const isCurrentlyHovered = hoveredId === cat.id;
+                    const buttonClasses = `${classes.toggleButton} ${
+                      !isCollapsed ? classes.isExpanded : ''
+                    }`;
+
                     return (
                       <div key={cat.id} style={{ marginBottom: '2rem' }}>
-  		        <h2
-		          style={{ margin: '0 0 0.5rem', cursor: 'pointer', color: 'var(--color-accent)' }}
-		          onClick={() => setCategoryInEdit(cat)}
-		        >
-		          {cat.name}
-		        </h2>
-                        <AppGrid apps={list} searching={props.searching} />
+                        <h2 className={classes.categoryTitle}>
+                          {config.collapseCategories !== false && (
+                            <button
+                              onClick={() => toggleCollapsed(cat.id)}
+                              onMouseEnter={() => setHoveredId(cat.id)}
+                              onMouseLeave={() => setHoveredId(null)}
+                              className={buttonClasses}
+                            >
+                              <CollapseToggle isHovered={isCurrentlyHovered} config={config} />
+                            </button>
+                          )}
+                          <span
+                            className={classes.categoryName}
+                            onClick={() => setCategoryInEdit(cat)}
+                          >
+                            {cat.name}
+                          </span>
+                        </h2>
+
+			<AnimatePresence>
+                          {!isCollapsed && (
+                          <motion.div
+                            style={{ overflow: 'hidden' }}
+                            key="app-grid-content" 
+                            initial="hidden"
+                            animate="visible"
+                            exit="hidden"
+                            variants={{
+                              visible: { opacity: 1, height: 'auto' },
+                              hidden: { opacity: 0, height: 0 },
+                            }}
+                            transition={{ duration: 0.5, ease: 'easeInOut' }}
+                          >
+                            <AppGrid apps={list} searching={props.searching} />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       </div>
                     );
                   })}
 
                 {(apps || []).some((a) => a.categoryId == null) && (
                   <div style={{ marginBottom: '2rem' }}>
-		    <h2
-		      style={{ margin: '0 0 0.5rem', cursor: 'pointer', color: 'var(--color-accent)' }}
+		    <h2 className={classes.categoryTitle}>
+		      <span
+                        className={classes.categoryName}
 		      onClick={() =>
 		        setCategoryInEdit({
 		          id: -1, 
@@ -218,6 +325,7 @@ export const Apps = (props: Props): JSX.Element => {
 		      }
 		    >
 		      Uncategorized
+                      </span>
 		    </h2>
                     <AppGrid
                       apps={(apps || []).filter((a) => a.categoryId == null)}

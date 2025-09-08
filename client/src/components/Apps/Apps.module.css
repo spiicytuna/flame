@@ -9,3 +9,34 @@
 .GoBack:hover {
   color: var(--color-accent);
 }
+.Apps {
+}
+.categoryTitle {
+  display: flex;
+  align-items: center;
+  margin: 0 0 10px;
+  font-size: 1.43rem;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+.categoryName {
+  cursor: pointer;
+}
+.toggleButton {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 6px;
+  transition: transform 0.2s ease-in-out;
+  transform: rotate(0deg);
+}
+.isExpanded {
+  transform: rotate(90deg);
+}
+.SmallIcon {
+  width: 30px;
+  height: 30px;
+  vertical-align: middle;
+  margin-right: 3px;
+}

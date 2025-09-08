@@ -4,6 +4,10 @@
  * @returns Parsed icon name to be used with mdi/js, e.g mdiAlertBoxOutline
  */
 export const iconParser = (mdiName: string): string => {
+  if (!mdiName || mdiName.includes('.') || mdiName.startsWith('mdi')) {
+    return mdiName;
+  }
+
   let parsedName = mdiName
     .split('-')
     .map((word: string) => `${word[0].toUpperCase()}${word.slice(1)}`)

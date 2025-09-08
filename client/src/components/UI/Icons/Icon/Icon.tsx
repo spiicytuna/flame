@@ -6,21 +6,24 @@ import * as MDIcons from '@mdi/js';
 interface Props {
   icon: string;
   color?: string;
+  className?: string;
 }
 
-export const Icon = (props: Props): JSX.Element => {
-  let iconPath = (MDIcons as any)[props.icon];
+export const Icon = ({ icon, color, className }: Props): JSX.Element => {
+  let iconPath = (MDIcons as any)[icon];
 
   if (!iconPath) {
-    console.log(`Icon ${props.icon} not found`);
+    console.log(`Icon ${icon} not found`);
     iconPath = MDIcons.mdiCancel;
   }
 
+  const combinedClassName = `${classes.Icon} ${className || ''}`.trim();
+
   return (
     <MDIcon
-      className={classes.Icon}
+      className={combinedClassName}
       path={iconPath}
-      color={props.color ? props.color : 'var(--color-primary)'}
+      color={color ? color : 'var(--color-primary)'}
     />
   );
 };

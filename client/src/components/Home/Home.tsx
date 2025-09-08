@@ -8,12 +8,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { State } from '../../store/reducers';
 import { bindActionCreators } from 'redux';
 import { actionCreators } from '../../store';
+import { ActionType } from '../../store/action-types'; 
 
 // Typescript
 import { App, Category } from '../../interfaces';
 
 // UI
 import { Icon, Container, SectionHeadline, Spinner, Message } from '../UI';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // CSS
 import classes from './Home.module.css';
@@ -25,19 +27,40 @@ import { SearchBar } from '../SearchBar/SearchBar';
 import { Header } from './Header/Header';
 
 // Utils
-import { escapeRegex } from '../../utility';
+import { escapeRegex, applyAuth } from '../../utility';
+
+// collapse cats mdi icons
+const CollapseToggle = ({
+  isHovered,
+  config,
+}: {
+  isHovered: boolean;
+  config: State['config']['config'];
+}) => {
+  // fallback => defaults
+  const iconName = isHovered
+    ? config.categoryCollapseIconHover || 'mdiChevronRightCircleOutline'
+    : config.categoryCollapseIcon || 'mdiChevronRight';
+
+  return (
+    <Icon
+      icon={iconName}
+      color={isHovered ? 'var(--color-primary)' : 'var(--color-accent)'}
+      className={classes.SmallIcon}
+    />
+  );
+};
 
 export const Home = (): JSX.Element => {
-  const [isPageLoading, setIsPageLoading] = useState(true);
   const {
-    apps: { apps, loading: appsLoading },
+    apps: { apps },
     categories: { categories, loading: categoriesLoading },
     config: { config },
     auth: { isAuthenticated },
   } = useSelector((state: State) => state);
 
   const dispatch = useDispatch();
-  const { getApps } = bindActionCreators(actionCreators, dispatch);
+  const { updateCategoryCollapseState } = bindActionCreators(actionCreators, dispatch);
 
   // Local search query
   const [localSearch, setLocalSearch] = useState<null | string>(null);
@@ -46,20 +69,51 @@ export const Home = (): JSX.Element => {
 
   // Unconditionally load apps & categories on first mount
   useEffect(() => {
-    const fetchData = async () => {
-      setIsPageLoading(true);
-      await dispatch(fetchHomepageData() as any);
-      setIsPageLoading(false);
-    };
-    fetchData();
+    dispatch(fetchHomepageData() as any);
   }, [dispatch]);
   
 
   // Derive app-only categories for grouping Applications
   const appCategories = useMemo(
     () => (categories || []).filter((c: any) => c.section === 'apps'),
-    [categories]
+    [categories],
   );
+
+  const [didInitCollapse, setDidInitCollapse] = useState(false);
+  const [collapseState, setCollapseState] = useState<Record<number, boolean>>({});
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!didInitCollapse && appCategories.length > 0) {
+      const initialState = Object.fromEntries(
+        appCategories.map((cat) => [cat.id, cat.isCollapsed ?? false]),
+      );
+      setCollapseState(initialState);
+      setDidInitCollapse(true);
+    }
+  }, [appCategories, didInitCollapse]);
+
+  // Update handler
+  const toggleCollapsed = async (catId: number) => {
+    const newState = !collapseState[catId];
+    setCollapseState((prev) => ({ ...prev, [catId]: newState }));
+   
+    try {
+      await fetch(`/api/categories/${catId}`, {
+	method: 'PATCH',
+	headers: {
+	  'Content-Type': 'application/json',
+	  ...applyAuth(),
+	},
+	body: JSON.stringify({ isCollapsed: newState }),
+      });
+      dispatch(updateCategoryCollapseState(catId, newState));
+    } catch (err) {
+      console.error(`Failed to update category ${catId}:`, err);
+      alert('Failed to save collapse state. Please try again.');
+    }
+  };
+
 
   // Search
   useEffect(() => {
@@ -68,12 +122,11 @@ export const Home = (): JSX.Element => {
       const re = new RegExp(escapeRegex(localSearch), 'i');
       setAppSearchResult(apps.filter(({ name, description }) => re.test(`${name} ${description}`)));
 
-      // Search through bookmarks — build a synthetic “Search Results” category
+      // search bookmarks => synthetic “Search Results” category
       const base: Category | undefined = categories[0];
       const searchCategory: Category = base
         ? { ...base }
-        : // minimal shape in case categories is empty
-          ({ id: 0, name: '', isPinned: false, isPublic: true, orderId: 0 } as any);
+        : ({ id: 0, name: '', isPinned: false, isPublic: true, orderId: 0 } as any);
 
       searchCategory.name = 'Search Results';
       searchCategory.bookmarks = (categories ?? [])
@@ -86,6 +139,7 @@ export const Home = (): JSX.Element => {
       setBookmarkSearchResult(null);
     }
   }, [localSearch, apps, categories]);
+
 
   return (
     <Container>
@@ -114,7 +168,7 @@ export const Home = (): JSX.Element => {
       {!config.hideApps && (isAuthenticated || apps.some((a) => a.isPinned)) ? (
         <Fragment>
           <SectionHeadline title="Applications" link="/applications" />
-          {isPageLoading ? (
+          {categoriesLoading ? (
             <Spinner />
           ) : appSearchResult ? (
             <AppGrid apps={appSearchResult} searching={!!localSearch} />
@@ -128,12 +182,46 @@ export const Home = (): JSX.Element => {
                 .map((cat) => {
                   const list = (apps || []).filter((a) => a.categoryId === cat.id);
                   if (list.length === 0) return null;
+
+                  const isCollapsed = collapseState[cat.id] ?? false;
+                  const isCurrentlyHovered = hoveredId === cat.id;
+		  const buttonClasses = `${classes.toggleButton} ${!isCollapsed ? classes.isExpanded : ''}`;
+
                   return (
                     <div key={cat.id} style={{ marginBottom: '2rem' }}>
-                      <h2 style={{ margin: '0 0 0.5rem', fontSize: '16px', fontWeight: 400, color: 'var(--color-accent)', textTransform: 'uppercase' }}>
+                      <h2 className={classes.categoryTitle}>
+			{/* settings => interface => collapse => true|false */}
+			{config.collapseCategories !== false && (
+                          <button
+                            onClick={() => toggleCollapsed(cat.id)}
+                            onMouseEnter={() => setHoveredId(cat.id)}
+                            onMouseLeave={() => setHoveredId(null)}
+                            className={buttonClasses}
+                          >
+                            <CollapseToggle isHovered={isCurrentlyHovered} config={config} />
+                          </button>
+			)}
                         {cat.name}
                       </h2>
-                      <AppGrid apps={list} searching={!!localSearch} />
+
+		      <AnimatePresence>
+			{!isCollapsed && (
+                        <motion.div
+			  style={{ overflow: 'hidden' }}
+                          key="app-grid-content"
+                          initial="hidden"
+                          animate="visible"
+                          exit="hidden"
+                          variants={{
+                            visible: { opacity: 1, height: 'auto' },
+                            hidden: { opacity: 0, height: 0 },
+                          }}
+                          transition={{ duration: 0.5, ease: 'easeInOut' }}
+                        >
+                          <AppGrid apps={list} searching={!!localSearch} />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                     </div>
                   );
                 })}
