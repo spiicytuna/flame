@@ -9,7 +9,7 @@ RUN npm install --production
 # --- Install+Build Deps ---
 WORKDIR /app/client
 COPY ./client/package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install
 COPY ./client/ ./
 RUN npm run build
 
