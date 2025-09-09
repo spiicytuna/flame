@@ -12,11 +12,11 @@ COPY client/package.json ./package.json
 
 # Install client deps (! strictness)
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --legacy-peer-deps --prefer-offline --no-audit --no-fund
+    npm install --prefer-offline --no-audit --no-fund
 
 # Validate => framer-motion
 RUN node -e "require('fs').accessSync('node_modules/framer-motion/package.json')" \
- || npm install framer-motion motion-dom motion-utils --legacy-peer-deps --no-audit --no-fund
+ || npm install framer-motion motion-dom motion-utils --no-audit --no-fund
 
 COPY client/ ./
 
