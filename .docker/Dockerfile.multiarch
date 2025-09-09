@@ -6,7 +6,7 @@ ARG TARGETPLATFORM
 FROM --platform=$BUILDPLATFORM node:22-alpine AS clientbuilder
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN --mount=type=cache,target=/root/.npm npm ci --legacy-peer-deps
+RUN --mount=type=cache,target=/root/.npm npm ci
 COPY client/ ./
 RUN npm run build
 
