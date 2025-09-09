@@ -55,5 +55,10 @@
     "vite": "^7.1.4",
     "vite-plugin-svgr": "^4.5.0",
     "vite-tsconfig-paths": "^5.1.4"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-musl": "*",
+    "@rollup/rollup-linux-arm64-musl": "*",
+    "@rollup/rollup-linux-arm-gnueabihf": "*"
   }
 }
