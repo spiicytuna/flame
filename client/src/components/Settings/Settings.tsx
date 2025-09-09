@@ -16,6 +16,7 @@ import { DockerSettings } from './DockerSettings/DockerSettings';
 import { Themer } from './Themer/Themer';
 import { AppDetails } from './AppDetails/AppDetails';
 import { AuthForm } from './AppDetails/AuthForm/AuthForm';
+import { StyleSettings } from './StyleSettings/StyleSettings';
 
 export const Settings = (): JSX.Element => {
   const { isAuthenticated } = useSelector((state: State) => state.auth);
@@ -64,6 +65,13 @@ export const Settings = (): JSX.Element => {
               Theme
             </NavLink>
             <NavLink
+              to="/settings/css"
+              className={classes.SettingsNavLink}
+              activeClassName={classes.Active}
+            >
+              CSS
+            </NavLink>
+            <NavLink
               to="/settings/details"
               className={classes.SettingsNavLink}
               activeClassName={classes.Active}
@@ -81,6 +89,7 @@ export const Settings = (): JSX.Element => {
               <Route path="/weather" element={<WeatherSettings />} />
               <Route path="/docker" element={<DockerSettings />} />
               <Route path="/theme" element={<Themer />} />
+	      <Route path="/css" element={<StyleSettings />} />
               <Route path="/details" element={<AppDetails />} />
             </Routes>
           </div>
