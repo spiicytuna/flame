@@ -1,9 +1,11 @@
+import { type ReactNode } from 'react';
 import classes from './SettingsHeadline.module.css';
 
 interface Props {
-  text: string;
+  text?: string;
+  children?: ReactNode;
 }
 
-export const SettingsHeadline = (props: Props): JSX.Element => {
-  return <h2 className={classes.SettingsHeadline}>{props.text}</h2>;
+export const SettingsHeadline = ({ text, children }: Props): JSX.Element => {
+  return <h2 className={classes.SettingsHeadline}>{children ?? text}</h2>;
 };

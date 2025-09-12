@@ -1,0 +1,8 @@
+{
+  "owner": "spiicytuna",
+  "repo": "flame",
+  "branches": {
+    "stable": "master",
+    "dev": "tuna-combo"
+  }
+}

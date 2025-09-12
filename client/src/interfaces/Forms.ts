@@ -44,3 +44,10 @@ export interface DockerSettingsForm {
 export interface ThemeSettingsForm {
   defaultTheme: string;
 }
+
+export interface AppDetailsForm {
+  automaticUpdates: boolean;
+  useDefaults: boolean;
+  updateUrl: string;
+  showPopups: boolean;
+}

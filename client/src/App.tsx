@@ -31,51 +31,60 @@ if (localStorage.token) {
 
 export const App = (): JSX.Element => {
   const { config, loading } = useSelector((state: State) => state.config);
-
-  const dispath = useDispatch();
+  const dispatch = useDispatch();
   const { fetchQueries, setTheme, logout, createNotification, fetchThemes } =
-    bindActionCreators(actionCreators, dispath);
+    bindActionCreators(actionCreators, dispatch);
 
   useEffect(() => {
-    // check if token is valid
-    const tokenIsValid = setInterval(() => {
-      if (localStorage.token) {
-        const expiresIn = decodeToken(localStorage.token).exp * 1000;
-        const now = new Date().getTime();
-
-        if (now > expiresIn) {
+    const id = window.setInterval(() => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+  
+      try {
+        const { exp } = decodeToken(token) as { exp?: number };
+        if (exp && Date.now() > exp * 1000) {
+          // clear token+logout
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          delete axios.defaults.headers.common['Authorization'];
+  
           logout();
           createNotification({
             title: 'Info',
             message: 'Session expired. You have been logged out',
           });
+  
+          window.clearInterval(id);
         }
+      } catch {
+        localStorage.removeItem('token');
+        logout();
+        window.clearInterval(id);
       }
     }, 1000);
-
-    // load themes
+  
     fetchThemes();
-
-    // set user theme if present
-    if (localStorage.theme) {
-      setTheme(parsePABToTheme(localStorage.theme));
-    }
-
-    // check for updated
-    checkVersion();
-
-    // load custom search queries
+    if (localStorage.theme) setTheme(parsePABToTheme(localStorage.theme));
     fetchQueries();
-
-    return () => window.clearInterval(tokenIsValid);
+  
+    return () => window.clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (config.automaticUpdates && (config.showPopups ?? true)) {
+      const useDefaults = config.useDefaults ?? true;
+      const defaultUpdateUrl = undefined;
+      const urlToUse = useDefaults ? defaultUpdateUrl : (config.updateUrl || undefined);
+      void checkVersion(false, urlToUse, true); // settings => about => version => popups enabled
+    }
+  }, [config.automaticUpdates, config.showPopups, config.useDefaults, config.updateUrl]);
+  
   // If there is no user theme, set the default one
   useEffect(() => {
     if (!loading && !localStorage.theme) {
       setTheme(parsePABToTheme(config.defaultTheme), false);
     }
-  }, [loading]);
+  }, [loading, config.defaultTheme]);
 
   return (
     <>
