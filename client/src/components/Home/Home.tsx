@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 
 // Redux
+import { getCategoriesForSection } from '../../store/reducers/category';
+import { fetchHomepageData } from '../../store/action-creators/app';
 import { useDispatch, useSelector } from 'react-redux';
 import { State } from '../../store/reducers';
 import { bindActionCreators } from 'redux';
@@ -29,14 +31,13 @@ export const Home = (): JSX.Element => {
   const [isPageLoading, setIsPageLoading] = useState(true);
   const {
     apps: { apps, loading: appsLoading },
-    // NOTE: there is ONE categories list in the bookmarks slice; it contains both sections.
-    bookmarks: { categories, loading: bookmarksLoading },
+    categories: { categories, loading: categoriesLoading },
     config: { config },
     auth: { isAuthenticated },
   } = useSelector((state: State) => state);
 
   const dispatch = useDispatch();
-  const { getApps, getCategoriesForSection } = bindActionCreators(actionCreators, dispatch);
+  const { getApps } = bindActionCreators(actionCreators, dispatch);
 
   // Local search query
   const [localSearch, setLocalSearch] = useState<null | string>(null);
@@ -47,19 +48,12 @@ export const Home = (): JSX.Element => {
   useEffect(() => {
     const fetchData = async () => {
       setIsPageLoading(true);
-  
-      // Run these sequentially to prevent the race condition in the thunk
-      await getApps();
-      await getCategoriesForSection('apps');
-      await getCategoriesForSection('bookmarks'); // This now runs AFTER 'apps' is in the state
-  
+      await dispatch(fetchHomepageData() as any);
       setIsPageLoading(false);
     };
-  
     fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
+  }, [dispatch]);
+  
 
   // Derive app-only categories for grouping Applications
   const appCategories = useMemo(
@@ -118,18 +112,15 @@ export const Home = (): JSX.Element => {
 
       {/* Applications */}
       {!config.hideApps && (isAuthenticated || apps.some((a) => a.isPinned)) ? (
-	<Fragment>
+        <Fragment>
           <SectionHeadline title="Applications" link="/applications" />
           {isPageLoading ? (
             <Spinner />
           ) : appSearchResult ? (
-            // If there are search results, display them in a single grid
             <AppGrid apps={appSearchResult} searching={!!localSearch} />
           ) : appCategories.length === 0 ? (
-            // Otherwise, fallback to previous A→Z if there are no app categories
             <AppGrid apps={apps} searching={!!localSearch} />
           ) : (
-            // Otherwise, display the normal categorized view
             <>
               {appCategories
                 .slice()
@@ -139,15 +130,18 @@ export const Home = (): JSX.Element => {
                   if (list.length === 0) return null;
                   return (
                     <div key={cat.id} style={{ marginBottom: '2rem' }}>
-                      <h2 style={{ margin: '0 0 0.5rem', fontSize: '17px', fontWeight: 600, color: 'var(--color-accent)', textTransform: 'uppercase' }}>{cat.name}</h2>
+                      <h2 style={{ margin: '0 0 0.5rem', fontSize: '16px', fontWeight: 400, color: 'var(--color-accent)', textTransform: 'uppercase' }}>
+                        {cat.name}
+                      </h2>
                       <AppGrid apps={list} searching={!!localSearch} />
                     </div>
                   );
                 })}
-      
               {(apps || []).some((a) => a.categoryId == null) && (
                 <div style={{ marginBottom: '2rem' }}>
-                  <h2 style={{ margin: '0 0 0.5rem', fontSize: '17px', fontWeight: 600, color: 'var(--color-accent)', textTransform: 'uppercase' }}>Uncategorized</h2>
+                  <h2 style={{ margin: '0 0 0.5rem', fontSize: '16px', fontWeight: 400, color: 'var(--color-accent)', textTransform: 'uppercase' }}>
+                    Uncategorized
+                  </h2>
                   <AppGrid
                     apps={(apps || []).filter((a) => a.categoryId == null)}
                     searching={!!localSearch}
@@ -156,17 +150,15 @@ export const Home = (): JSX.Element => {
               )}
             </>
           )}
-          
           <div className={classes.HomeSpace}></div>
         </Fragment>
-      ) : null}     
-      
- 
+      ) : null}
+
       {/* Bookmarks */}
       {!config.hideCategories && (isAuthenticated || categories.some((c) => c.isPinned)) ? (
         <Fragment>
           <SectionHeadline title="Bookmarks" link="/bookmarks" />
-          {bookmarksLoading ? (
+          {categoriesLoading ? (
             <Spinner />
           ) : (
             <BookmarkGrid

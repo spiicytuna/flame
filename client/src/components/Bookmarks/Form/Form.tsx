@@ -16,9 +16,8 @@ interface Props {
 }
 
 export const Form = (props: Props): JSX.Element => {
-  const { categoryInEdit, bookmarkInEdit } = useSelector(
-    (state: State) => state.bookmarks
-  );
+  const { categoryInEdit } = useSelector((state: State) => state.categories);
+  const { bookmarkInEdit } = useSelector((state: State) => state.bookmarks);
 
   const { modalHandler, contentType, inUpdate } = props;
 

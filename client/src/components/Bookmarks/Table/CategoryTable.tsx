@@ -27,7 +27,7 @@ interface Props {
 export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
   const {
     config: { config },
-    bookmarks: { categories: allCategories },
+    categories: { categories: allCategories },
   } = useSelector((state: State) => state);
   
   // Create a new list that is filtered for ONLY bookmark categories

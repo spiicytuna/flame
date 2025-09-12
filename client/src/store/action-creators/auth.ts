@@ -8,7 +8,8 @@ import {
   LogoutAction,
 } from '../actions/auth';
 import axios, { AxiosError } from 'axios';
-import { getApps, getCategories } from '.';
+import { getApps } from '.';
+import { getCategoriesForSection } from '../reducers/category';
 
 export const login =
   (formData: { password: string; duration: string }) =>
@@ -27,7 +28,8 @@ export const login =
       });
 
       dispatch<any>(getApps());
-      dispatch<any>(getCategories());
+      dispatch<any>(getCategoriesForSection('apps'));
+      dispatch<any>(getCategoriesForSection('bookmarks'));
     } catch (err) {
       dispatch<any>(authError(err, true));
     }
@@ -41,7 +43,8 @@ export const logout = () => (dispatch: Dispatch<LogoutAction>) => {
   });
 
   dispatch<any>(getApps());
-  dispatch<any>(getCategories());
+  dispatch<any>(getCategoriesForSection('apps'));
+  dispatch<any>(getCategoriesForSection('bookmarks'));
 };
 
 export const autoLogin = () => async (dispatch: Dispatch<AutoLoginAction>) => {
@@ -59,7 +62,8 @@ export const autoLogin = () => async (dispatch: Dispatch<AutoLoginAction>) => {
     });
 
     dispatch<any>(getApps());
-    dispatch<any>(getCategories());
+    dispatch<any>(getCategoriesForSection('apps'));
+    dispatch<any>(getCategoriesForSection('bookmarks'));
   } catch (err) {
     dispatch<any>(authError(err, false));
   }
@@ -81,5 +85,6 @@ export const authError =
     }
 
     dispatch<any>(getApps());
-    dispatch<any>(getCategories());
+    dispatch<any>(getCategoriesForSection('apps'));
+    dispatch<any>(getCategoriesForSection('bookmarks'));
   };

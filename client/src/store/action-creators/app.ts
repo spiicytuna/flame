@@ -1,6 +1,6 @@
 import { ActionType } from '../action-types';
 import { Dispatch } from 'redux';
-import { ApiResponse, App, Config, NewApp } from '../../interfaces';
+import { ApiResponse, App, Category, Config, NewApp } from '../../interfaces';
 import {
   AddAppAction,
   DeleteAppAction,
@@ -15,12 +15,7 @@ import axios from 'axios';
 import { applyAuth } from '../../utility';
 
 export const getApps =
-  () => async (dispatch: Dispatch<GetAppsAction<undefined | App[]>>) => {
-    dispatch({
-      type: ActionType.getApps,
-      payload: undefined,
-    });
-
+  () => async (dispatch: Dispatch) => {
     try {
       const res = await axios.get<ApiResponse<App[]>>('/api/apps', {
         headers: applyAuth(),
@@ -32,6 +27,7 @@ export const getApps =
       });
     } catch (err) {
       console.log(err);
+      // Optional: Dispatch an error action here
     }
   };
 
@@ -205,3 +201,32 @@ export const setEditApp =
       payload: app,
     });
   };
+
+export const fetchHomepageData = () => async (dispatch: Dispatch) => {
+  try {
+    const [appsRes, appsCatRes, bookmarksCatRes] = await Promise.all([
+      axios.get<ApiResponse<App[]>>('/api/apps', { headers: applyAuth() }),
+      axios.get<ApiResponse<Category[]>>('/api/categories?section=apps', { headers: applyAuth() }),
+      axios.get<ApiResponse<Category[]>>('/api/categories?section=bookmarks', { headers: applyAuth() }),
+    ]);
+
+    // Combine all cats before dispatching
+    const allCategories = [
+      ...(appsCatRes.data.data ?? []),
+      ...(bookmarksCatRes.data.data ?? [])
+    ];
+
+    // ONE action > ALL the data
+    dispatch({
+      type: ActionType.fetchHomepageDataSuccess,
+      payload: {
+        apps: appsRes.data.data ?? [],
+        categories: allCategories,
+      },
+    });
+
+  } catch (err) {
+    console.error("Failed to fetch homepage data", err);
+  }
+};
+
