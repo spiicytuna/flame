@@ -57,6 +57,18 @@ export const getCategoriesForSection =
     }
   };
 
+export const expandAllCategories = () => async (dispatch: Dispatch) => {
+  try {
+    // expand cats
+    await axios.put('/api/categories/expand-all', {}, { headers: applyAuth() });
+
+    // Redux => expand cats
+    dispatch({ type: ActionType.expandAllCategories });
+  } catch (err) {
+    console.error('Failed to expand all categories:', err);
+  }
+};
+
 export const addCategory =
   (formData: NewCategory) => async (dispatch: Dispatch<AddCategory>) => {
     try {
@@ -226,3 +238,10 @@ export const setEditCategory =
       payload: category,
     });
   };
+
+export const updateCategoryCollapseState = (categoryId: number, isCollapsed: boolean) => {
+  return {
+    type: ActionType.updateCategoryCollapseState,
+    payload: { categoryId, isCollapsed },
+  };
+};

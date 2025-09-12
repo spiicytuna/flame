@@ -36,4 +36,7 @@ export interface Config {
   showExtraWeatherColumn: boolean;
   extraWeatherTop: string;
   extraWeatherBottom: string;
+  collapseCategories?: boolean;
+  categoryCollapseIcon?: string;
+  categoryCollapseIconHover?: string;
 }

@@ -15,6 +15,7 @@ export enum ActionType {
   fetchQueries = 'FETCH_QUERIES',
   updateQuery = 'UPDATE_QUERY',
   fetchHomepageDataSuccess = 'FETCH_HOMEPAGE_DATA_SUCCESS',
+  updateCategoryCollapseState = 'UPDATE_CATEGORY_COLLAPSE_STATE',
   // NOTIFICATIONS
   createNotification = 'CREATE_NOTIFICATION',
   clearNotification = 'CLEAR_NOTIFICATION',
@@ -41,6 +42,7 @@ export enum ActionType {
   sortCategories = 'SORT_CATEGORIES',
   reorderCategories = 'REORDER_CATEGORIES',
   setEditCategory = 'SET_EDIT_CATEGORY',
+  expandAllCategories = 'EXPAND_ALL_CATEGORIES',
   // BOOKMARKS
   addBookmark = 'ADD_BOOKMARK',
   deleteBookmark = 'DELETE_BOOKMARK',

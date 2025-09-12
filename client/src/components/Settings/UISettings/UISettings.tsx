@@ -14,29 +14,41 @@ import { InputGroup, Button, SettingsHeadline } from '../../UI';
 
 // Utils
 import { uiSettingsTemplate, inputHandler } from '../../../utility';
+import { iconParser } from '../../../utility/iconParser';
 
 export const UISettings = (): JSX.Element => {
   const { loading, config } = useSelector((state: State) => state.config);
 
   const dispatch = useDispatch();
-  const { updateConfig } = bindActionCreators(actionCreators, dispatch);
+  const { updateConfig, expandAllCategories } = bindActionCreators(actionCreators, dispatch);
 
   // Initial state
   const [formData, setFormData] = useState<UISettingsForm>(uiSettingsTemplate);
 
-  // Get config
+  // get config
   useEffect(() => {
     setFormData({
       ...config,
     });
   }, [loading]);
 
-  // Form handler
+  // form handler
   const formSubmitHandler = async (e: FormEvent) => {
     e.preventDefault();
 
+    // icon data => react format
+    const formattedData = {
+      ...formData,
+      categoryCollapseIcon: iconParser(formData.categoryCollapseIcon),
+      categoryCollapseIconHover: iconParser(formData.categoryCollapseIconHover),
+    };
+
     // Save settings
-    await updateConfig(formData);
+    await updateConfig(formattedData);
+
+    if (formattedData.collapseCategories === false) {
+      expandAllCategories();
+    }
 
     // Update local page title
     document.title = formData.customTitle;
@@ -57,7 +69,6 @@ export const UISettings = (): JSX.Element => {
 
   return (
     <form onSubmit={(e) => formSubmitHandler(e)}>
-      {/* === OTHER OPTIONS === */}
       <SettingsHeadline text="Miscellaneous" />
       {/* PAGE TITLE */}
       <InputGroup>
@@ -74,7 +85,7 @@ export const UISettings = (): JSX.Element => {
 
       {/* === SEARCH OPTIONS === */}
       <SettingsHeadline text="Search" />
-      {/* HIDE SEARCHBAR */}
+      {/* === HIDE SEARCHBAR === */}
       <InputGroup>
         <label htmlFor="hideSearch">Hide search bar</label>
         <select
@@ -236,6 +247,56 @@ export const UISettings = (): JSX.Element => {
           <option value={0}>False</option>
         </select>
       </InputGroup>
+
+      {/* COLLAPSE APP CATEGORIES */}
+      <SettingsHeadline text="Categories" />
+      <InputGroup>
+        <label htmlFor="collapseCategories">Enable 'Application' category collapse</label>
+        <select
+          id="collapseCategories"
+          name="collapseCategories"
+          value={formData.collapseCategories ? 1 : 0}
+          onChange={(e) => inputChangeHandler(e, { isBool: true })}
+        >
+          <option value={1}>True</option>
+          <option value={0}>False</option>
+        </select>
+      </InputGroup>
+
+      {/* CATEGORY COLLAPSE ICON */}
+      <InputGroup>
+        <label htmlFor="categoryCollapseIcon">Category collapse icon</label>
+        <input
+          type="text"
+          id="categoryCollapseIcon"
+          name="categoryCollapseIcon"
+          placeholder="mdiChevronRight"
+          value={formData.categoryCollapseIcon || 'mdiChevronRight'}
+          onChange={(e) => inputChangeHandler(e)}
+        />
+        <span>
+          Use icon name from MDI or pass a valid URL.
+          <a href="https://pictogrammers.com/library/mdi/" target="blank"> Click here for reference</a>
+        </span>
+      </InputGroup>
+
+      {/* CATEGORY COLLAPSE ICON HOVER */}
+      <InputGroup>
+        <label htmlFor="categoryCollapseIconHover">Category collapse icon (hover)</label>
+        <input
+          type="text"
+          id="categoryCollapseIconHover"
+          name="categoryCollapseIconHover"
+          placeholder="mdiChevronRightCircleOutline"
+          value={formData.categoryCollapseIconHover || 'mdiChevronRightCircleOutline'}
+          onChange={(e) => inputChangeHandler(e)}
+        />
+        <span>
+          Use icon name from MDI or pass a valid URL.
+          <a href="https://pictogrammers.com/library/mdi/" target="blank"> Click here for reference</a>
+        </span>
+      </InputGroup>
+
 
       <Button>Save changes</Button>
     </form>

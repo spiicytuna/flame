@@ -36,6 +36,11 @@ const Category = sequelize.define(
         defaultValue: '—',
         validate: { len: [1, 3] },
     },
+    isCollapsed: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     tableName: 'categories',
