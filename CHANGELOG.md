@@ -1,3 +1,10 @@
+### v0.03 (2025-09-13)
+- FIX: update db migration scripts to include support for older structures (categories.section)
+- FIX: apply npm security updates for Axios + Vite
+- FIX: Dockerfile build files no longer need '--legacy-peer-deps' with recent updates
+- Updated 'Settings => About => Updates' logic to be ridiculously overkill and customizable
+- Updated 'Settings' menu including 'CSS' again by request => prev dev had moved to external file approach
+
 ### v0.02 (2025-09-08)
 - Application categories can collapse
 - Collapsible app cats can be configured settings > interface > categories
