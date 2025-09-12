@@ -1,8 +1,12 @@
 const { join } = require('path');
 const express = require('express');
 const { errorHandler } = require('./middleware');
+const healthRoutes = require('./routes/health');
 
 const api = express();
+
+// Register health route BEFORE static content handler
+api.use('/health', healthRoutes);
 
 // Static files
 api.use(express.static(join(__dirname, 'public')));
