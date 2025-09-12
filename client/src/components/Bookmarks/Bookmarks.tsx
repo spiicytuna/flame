@@ -141,6 +141,19 @@ export const Bookmarks = (props: Props): JSX.Element => {
     setEditCategory(null);
   };
 
+  const isEditing = showTable || categoryInEdit;
+
+  const goBackElement = isEditing ? (
+    <span className={classes.GoBack} onClick={() => {
+      setShowTable(false);
+      setEditCategory(null);
+    }}>
+      Go back
+    </span>
+  ) : (
+    <Link to="/">Go back</Link>
+  );
+
   return (
     <Container>
       <Modal isOpen={modalIsOpen} setIsOpen={toggleModal}>
@@ -151,7 +164,7 @@ export const Bookmarks = (props: Props): JSX.Element => {
         />
       </Modal>
 
-      <Headline title="All Bookmarks" subtitle={<Link to="/">Go back</Link>} />
+      <Headline title="All Bookmarks" subtitle={goBackElement} />
 
       {isAuthenticated && (
         <div className={classes.ActionsContainer}>
