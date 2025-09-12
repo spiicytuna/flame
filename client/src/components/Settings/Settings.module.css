@@ -4,6 +4,10 @@
   grid-template-columns: 1fr;
 }
 
+.SettingsNavTitle {
+  color: var(--color-accent);
+}
+
 .SettingsNav {
   display: flex;
   flex-direction: column;
@@ -37,4 +41,13 @@
   .Settings {
     grid-template-columns: 1fr 3fr;
   }
+}
+
+.GoBack {
+  padding-top: 12px;
+  text-decoration: none;
+}
+
+.GoBack:hover {
+  text-decoration: underline;
 }
