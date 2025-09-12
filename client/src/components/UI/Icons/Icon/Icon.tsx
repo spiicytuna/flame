@@ -1,6 +1,7 @@
 import classes from './Icon.module.css';
 
 import { Icon as MDIcon } from '@mdi/react';
+import * as MDIcons from '@mdi/js';
 
 interface Props {
   icon: string;
@@ -8,8 +9,7 @@ interface Props {
 }
 
 export const Icon = (props: Props): JSX.Element => {
-  const MDIcons = require('@mdi/js');
-  let iconPath = MDIcons[props.icon];
+  let iconPath = (MDIcons as any)[props.icon];
 
   if (!iconPath) {
     console.log(`Icon ${props.icon} not found`);

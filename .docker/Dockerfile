@@ -1,37 +1,42 @@
-FROM node:16-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# --- Server Deps ---
 COPY package*.json ./
-
 RUN npm install --production
 
+# --- Install+Build Deps ---
+WORKDIR /app/client
+COPY ./client/package*.json ./
+RUN npm install --legacy-peer-deps
+COPY ./client/ ./
+RUN npm run build
+
+# --- Final Files ---
+WORKDIR /app
 COPY . .
+RUN mkdir -p ./public && mv ./client/dist/* ./public
+# Clean up the client source code
+RUN rm -rf ./client
 
-RUN mkdir -p ./public ./data \
-    && cd ./client \
-    && npm install --production \
-    && npm run build \
-    && cd .. \
-    && mv ./client/build/* ./public \
-    && rm -rf ./client
-
-FROM node:16-alpine
+# ---- Final Stage ----
+FROM node:22-alpine
 
 WORKDIR /app
+
+# Copy app from build
 COPY --from=builder /app /app
 
+# runtime OS deps
 RUN apk add --no-cache curl jq sqlite
 
-# Set environment
 ENV NODE_ENV=production
-ENV PASSWORD=flame_password
 
-# Ensure correct permissions for runtime directory
-RUN mkdir -p /app/data /app/log /app/public \
+RUN mkdir -p /app/data /app/log \
     && chown -R node:node /app/data /app/log /app/public
 
-USER root
+USER node
 
 EXPOSE 5005
 

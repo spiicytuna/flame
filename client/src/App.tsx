@@ -1,24 +1,25 @@
-import { BrowserRouter, Route, Switch } from 'react-router-dom';
-import 'external-svg-loader';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 // Redux
 import { autoLogin, getConfig } from './store/action-creators';
 import { store } from './store';
 
-// Shared layout logic shouldn't live in apps for all section, moved to:
+// Layout
 import { MainLayout } from './components/Layout/MainLayout';
 
-// Routes
+// Page Components
 import { Home } from './components/Home/Home';
 import { Apps } from './components/Apps/Apps';
 import { Settings } from './components/Settings/Settings';
 import { Bookmarks } from './components/Bookmarks/Bookmarks';
 import { NotificationCenter } from './components/NotificationCenter/NotificationCenter';
 
-// Get config
+// routing
+import { ProtectedRoute } from './components/Routing/ProtectedRoute';
+
+// config
 store.dispatch<any>(getConfig());
 
-// Validate token
 if (localStorage.token) {
   store.dispatch<any>(autoLogin());
 }
@@ -28,12 +29,36 @@ export const App = (): JSX.Element => {
     <>
       <BrowserRouter>
         <MainLayout>
-          <Switch>
-            <Route exact path="/" component={Home} />
-            <Route path="/settings" component={Settings} />
-            <Route path="/applications" component={Apps} />
-            <Route path="/bookmarks" component={Bookmarks} />
-          </Switch>
+          <Routes>
+            {/* Public route */}
+            <Route path="/" element={<Home />} />
+
+            {/* Protected Routes */}
+            <Route
+              path="/applications"
+              element={
+                <ProtectedRoute>
+                  <Apps />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/bookmarks"
+              element={
+                <ProtectedRoute>
+                  <Bookmarks />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings/*"
+              element={
+                <ProtectedRoute>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
         </MainLayout>
       </BrowserRouter>
       <NotificationCenter />
