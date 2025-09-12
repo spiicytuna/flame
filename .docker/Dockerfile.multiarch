@@ -1,55 +1,50 @@
 # syntax=docker/dockerfile:1.7
+ARG BUILDPLATFORM
+ARG TARGETPLATFORM
 
-### Build
-FROM node:22-alpine AS builder
-
-# sqlite3 reqs
-RUN apk add --no-cache python3 make g++
-
-WORKDIR /app
-
-# Server deps
-COPY package*.json ./
-ENV NODE_ENV=production
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
-
-# Client deps
+### Client build (runs on host arch)
+FROM --platform=$BUILDPLATFORM node:22-alpine AS clientbuilder
 WORKDIR /app/client
 COPY client/package*.json ./
-
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --legacy-peer-deps
+RUN --mount=type=cache,target=/root/.npm npm ci --legacy-peer-deps
 COPY client/ ./
 RUN npm run build
 
+### Server build (targets arm/v7)
+FROM --platform=$TARGETPLATFORM node:22-bookworm-slim AS builder
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y -q --no-install-recommends \
+  python3 python3-distutils make g++ pkg-config libsqlite3-dev ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+ENV NODE_ENV=production npm_config_jobs=4 npm_config_python=/usr/bin/python3
+COPY package*.json ./
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.cache/node-gyp \
+    npm ci --omit=dev
+
+# Bring in server sources
 COPY . .
 
-RUN mkdir -p /app/public && \
-    [ -d /app/client/dist ] && cp -r /app/client/dist/* /app/public/ || true && \
-    rm -rf /app/client
+# client assets => /app/public
+RUN mkdir -p /app/public
+COPY --from=clientbuilder /app/client/dist/ /app/public/
 
-### Runtime
-FROM node:22-alpine
+# no client sources
+RUN rm -rf /app/client
 
-# Runtime libs for sqlite3 native addon
-# - sqlite-libs: libsqlite3.so
-# - libstdc++: C++ runtime needed by compiled addon
-RUN apk add --no-cache sqlite-libs libstdc++ curl jq
+### Runtime (arm/v7)
+FROM node:22-bookworm-slim
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y -q --no-install-recommends \
+  libsqlite3-0 libstdc++6 ca-certificates curl \
+  && rm -rf /var/lib/apt/lists/*
 
 ENV NODE_ENV=production
 WORKDIR /app
-
-# set ownership => no root
 COPY --from=builder --chown=node:node /app /app
 RUN mkdir -p /app/data /app/log
-
 USER node
 EXPOSE 5005
-
-# health
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=5 \
-  CMD node -e "require('http').get('http://127.0.0.1:5005/health',r=>{if(r.statusCode!==200)process.exit(1)}).on('error',()=>process.exit(1))"
-
 CMD ["node", "server.js"]
