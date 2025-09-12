@@ -1,11 +1,24 @@
-import { Fragment, useState, useEffect } from 'react';
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from 'react-beautiful-dnd';
+import { Fragment, useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+
+// @dnd-kit imports
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // Redux
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,32 +27,98 @@ import { bindActionCreators } from 'redux';
 import { actionCreators } from '../../../store';
 
 // Typescript
-import type { App, App as AppModel, Category } from '../../../interfaces';
+import type { App, Category } from '../../../interfaces';
 
-// Other
-import { Message, Table, ActionButton } from '../../UI';
+// UI
+import { Message, ActionButton } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
+
+// CSS
+import styles from './AppTable.module.css';
+
+interface SortableRowProps {
+  app: App;
+  deleteHandler: (id: number, name: string) => void;
+  updateHandler: (id: number) => void;
+  pinHandler: (id: number) => void;
+  changeVisibilityHandler: (id: number) => void;
+}
+
+const SortableAppRow = ({
+  app,
+  deleteHandler,
+  updateHandler,
+  pinHandler,
+  changeVisibilityHandler,
+}: SortableRowProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: app.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    border: isDragging ? '1px solid var(--color-accent)' : 'none',
+    borderRadius: '4px',
+  };
+  
+  const entityForActions = {
+    ...app,
+    isPinned: !!app.isPinned,
+    isPublic: !!app.isPublic,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} {...attributes} {...listeners}>
+      <td>{app.name}</td>
+      <td>{app.url}</td>
+      <td>{app.icon}</td>
+      <td>{entityForActions.isPublic ? 'Visible' : 'Hidden'}</td>
+      <td onPointerDown={(e) => e.stopPropagation()}>
+        {!isDragging && (
+          <TableActions
+            entity={entityForActions}
+            deleteHandler={deleteHandler}
+            updateHandler={updateHandler}
+            pinHanlder={pinHandler}
+            changeVisibilty={changeVisibilityHandler}
+          />
+        )}
+      </td>
+    </tr>
+  );
+};
 
 interface Props {
   category: Category;
-  openFormForUpdating: (app: AppModel) => void;
+  openFormForUpdating: (app: App) => void;
   onFinishEditing: () => void;
 }
 
-export const AppTable = (props: Props): JSX.Element => {
+export const AppTable = ({
+  category,
+  openFormForUpdating,
+  onFinishEditing,
+}: Props): JSX.Element => {
   const {
-    apps: { apps: allApps }, // Renamed to allApps for clarity
+    apps: { apps: allApps },
     config: { config },
   } = useSelector((state: State) => state);
-
-  // This is the new filtering logic
-  const appsToShow = allApps.filter(app => {
-    // Handle the special "Uncategorized" case
-    if (props.category.id === -1) {
-      return app.categoryId === null;
-    }
-    return app.categoryId === props.category.id;
-  });
+  
+  const appsToShow = useMemo(() => {
+    const filtered = allApps.filter(app => {
+      if (category.id === -1) {
+        return app.categoryId === null;
+      }
+      return app.categoryId === category.id;
+    });
+    return filtered.sort((a, b) => a.orderId - b.orderId);
+  }, [allApps, category.id]);
 
   const dispatch = useDispatch();
   const { pinApp, deleteApp, reorderApps, createNotification, updateApp } =
@@ -49,10 +128,18 @@ export const AppTable = (props: Props): JSX.Element => {
 
   // Update useEffect to use the filtered list
   useEffect(() => {
-    setLocalApps([...appsToShow]);
-  }, [appsToShow]);
+    setLocalApps(appsToShow);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category.id]);
+  
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
-  const dragEndHanlder = (result: DropResult): void => {
+  const handleDragEnd = (event: DragEndEvent) => {
     if (config.useOrdering !== 'orderId') {
       createNotification({
         title: 'Error',
@@ -61,22 +148,22 @@ export const AppTable = (props: Props): JSX.Element => {
       return;
     }
 
-    if (!result.destination) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) {
       return;
     }
 
-    const tmpApps = [...localApps];
-    const [movedApp] = tmpApps.splice(result.source.index, 1);
-    tmpApps.splice(result.destination.index, 0, movedApp);
+    const oldIndex = localApps.findIndex((a) => a.id === active.id);
+    const newIndex = localApps.findIndex((a) => a.id === over.id);
+    const reordered = arrayMove(localApps, oldIndex, newIndex);
 
-    setLocalApps(tmpApps);
-    reorderApps(tmpApps);
+    setLocalApps(reordered);
+    reorderApps(reordered);
   };
 
   // Action handlers
   const deleteAppHandler = (id: number, name: string) => {
     const proceed = window.confirm(`Are you sure you want to delete ${name}?`);
-
     if (proceed) {
       deleteApp(id);
     }
@@ -84,33 +171,49 @@ export const AppTable = (props: Props): JSX.Element => {
 
   const updateAppHandler = (id: number) => {
     const app = allApps.find((a) => a.id === id) as App;
-    props.openFormForUpdating(app);
+    openFormForUpdating(app);
   };
 
   const pinAppHandler = (id: number) => {
-    const app = allApps.find((a) => a.id === id) as App;
-    pinApp(app);
+    // UI 1st
+    setLocalApps(currentApps =>
+      currentApps.map(app =>
+        app.id === id ? { ...app, isPinned: !app.isPinned } : app
+      )
+    );
+
+    const appToPin = localApps.find(app => app.id === id);
+    if (appToPin) {
+      // Redux action => app object
+      pinApp(appToPin);
+    }
   };
 
-  const changeAppVisibiltyHandler = (id: number) => {
-    const app = allApps.find((a) => a.id === id) as App;
-    updateApp(id, { ...app, isPublic: !app.isPublic });
+  const changeAppVisibilityHandler = (id: number) => {
+    setLocalApps(currentApps => {
+      const appToUpdate = currentApps.find(app => app.id === id);
+      if (!appToUpdate) return currentApps;
+
+      const updatedApp = { ...appToUpdate, isPublic: !appToUpdate.isPublic };
+      updateApp(id, updatedApp);
+
+      return currentApps.map(app => (app.id === id ? updatedApp : app));
+    });
   };
 
   return (
     <Fragment>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-        <h2 style={{ color: 'var(--color-primary)' }}>Editing: {props.category.name}</h2>
+        <h2 style={{ color: 'var(--color-primary)' }}>Editing: {category.name}</h2>
         <ActionButton
           name="Done Editing"
           icon="mdiPencilOff"
-          handler={props.onFinishEditing}
+          handler={onFinishEditing}
         />
       </div>
       <Message isPrimary={false}>
-
         {config.useOrdering === 'orderId' ? (
-          <p>You can drag and drop single rows to reorder application</p>
+          <p>You can drag and drop single rows to reorder applications</p>
         ) : (
           <p>
             Custom order is disabled. You can change it in the{' '}
@@ -119,62 +222,40 @@ export const AppTable = (props: Props): JSX.Element => {
         )}
       </Message>
 
-      <DragDropContext onDragEnd={dragEndHanlder}>
-        <Droppable droppableId="apps">
-          {(provided) => (
-            <Table
-              headers={['Name', 'URL', 'Icon', 'Visibility', 'Actions']}
-              innerRef={provided.innerRef}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <table className={styles.table}>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>URL</th>
+              <th>Icon</th>
+              <th>Visibility</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <SortableContext
+              items={localApps.map(a => a.id)}
+              strategy={verticalListSortingStrategy}
             >
-              {localApps.map((app: App, index): JSX.Element => {
-                return (
-                  <Draggable
-                    key={app.id}
-                    draggableId={app.id.toString()}
-                    index={index}
-                  >
-                    {(provided, snapshot) => {
-                      const style = {
-                        border: snapshot.isDragging
-                          ? '1px solid var(--color-accent)'
-                          : 'none',
-                        borderRadius: '4px',
-                        ...provided.draggableProps.style,
-                      };
-
-                      return (
-                        <tr
-                          {...provided.draggableProps}
-                          {...provided.dragHandleProps}
-                          ref={provided.innerRef}
-                          style={style}
-                        >
-                          <td style={{ width: '200px' }}>{app.name}</td>
-                          <td style={{ width: '200px' }}>{app.url}</td>
-                          <td style={{ width: '200px' }}>{app.icon}</td>
-                          <td style={{ width: '200px' }}>
-                            {app.isPublic ? 'Visible' : 'Hidden'}
-                          </td>
-
-                          {!snapshot.isDragging && (
-                            <TableActions
-                              entity={app}
-                              deleteHandler={deleteAppHandler}
-                              updateHandler={updateAppHandler}
-                              pinHanlder={pinAppHandler}
-                              changeVisibilty={changeAppVisibiltyHandler}
-                            />
-                          )}
-                        </tr>
-                      );
-                    }}
-                  </Draggable>
-                );
-              })}
-            </Table>
-          )}
-        </Droppable>
-      </DragDropContext>
+              {localApps.map((app: App) => (
+                <SortableAppRow
+                  key={app.id}
+                  app={app}
+                  deleteHandler={deleteAppHandler}
+                  updateHandler={updateAppHandler}
+                  pinHandler={pinAppHandler}
+                  changeVisibilityHandler={changeAppVisibilityHandler}
+                />
+              ))}
+            </SortableContext>
+          </tbody>
+        </table>
+      </DndContext>
     </Fragment>
   );
 };

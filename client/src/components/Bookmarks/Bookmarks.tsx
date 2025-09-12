@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 
 // Redux
@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import { State } from '../../store/reducers';
 import { actionCreators } from '../../store';
-import { getCategoriesForSection } from '../../store/action-creators/category';
+// import { getCategoriesForSection } from '../../store/action-creators/category';
 
 // Typescript
 import type { Category, Bookmark } from '../../interfaces';
@@ -29,8 +29,13 @@ import { BookmarkGrid } from './BookmarkGrid/BookmarkGrid';
 import { Form } from './Form/Form';
 import { Table } from './Table/Table';
 
-interface Props {
-  searching: boolean;
+// FIX: A helper hook to track the previous value of a prop or state
+function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<T>();
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
 }
 
 export enum ContentType {
@@ -51,7 +56,7 @@ export const Bookmarks = (props: Props): JSX.Element => {
 
   // Actions
   const dispatch = useDispatch();
-  const { setEditCategory, setEditBookmark } = bindActionCreators(
+  const { setEditCategory, setEditBookmark, getCategoriesForSection } = bindActionCreators(
     actionCreators,
     dispatch
   );
@@ -62,8 +67,10 @@ export const Bookmarks = (props: Props): JSX.Element => {
   const [isInUpdate, setIsInUpdate] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [showCategoryTable, setShowCategoryTable] = useState(false);
+  const [categoryForForm, setCategoryForForm] = useState<Category | undefined>(undefined);
 
-  const [categoryForForm, setCategoryForForm] = useState<Category | undefined>(undefined);  
+  const prevShowCategoryTable = usePrevious(showCategoryTable);
+  const prevSelectedCategory = usePrevious(selectedCategory);
 
   // Cleanup hooks
   useEffect(() => {
@@ -84,6 +91,16 @@ export const Bookmarks = (props: Props): JSX.Element => {
       setEditBookmark(null);
     }
   }, [modalIsOpen, setEditCategory, setEditBookmark]);
+
+  useEffect(() => {
+    if (prevShowCategoryTable && !showCategoryTable) {
+      getCategoriesForSection('bookmarks');
+    }
+
+    if (prevSelectedCategory && !selectedCategory) {
+      getCategoriesForSection('bookmarks');
+    }
+  }, [showCategoryTable, prevShowCategoryTable, selectedCategory, prevSelectedCategory, getCategoriesForSection]);
 
   // Handlers
   const toggleModal = (): void => setModalIsOpen((s) => !s);
