@@ -1,3 +1,9 @@
+### v2.4.1 (2025-09-09)
+- Updated nodemon 2.0.14 => 3.1.10 (security/vulnerability)
+- Updated @types/node 16.11.6 => 24.3.1 (security/vulnerability)
+- Updated redux-devtools-extension (requires Redux 3) => @redux-devtools/extension (Redux 5 and beyond)
+- Updated codebase to remove extinct react-beautiful-dnd for @dnd-kit (security/vulnerability)
+
 ### v2.4.0 (2025-09-06)
 - Fixed secure route blocking logging in via settings
 - Fixed hardcoded JWT key (issue from orig repo: pawelmalak[#465](https://github.com/pawelmalak/flame/issues/465))
