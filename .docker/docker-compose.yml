@@ -1,11 +1,13 @@
-version: '3.6'
+version: '3.8'
 
 services:
   flame:
-    image: pawelmalak/flame
+    image: spiicytuna/flame
     container_name: flame
     volumes:
       - /path/to/host/data:/app/data
+      # - /path/to/favicon.ico:/app/public/icons/favicon.ico  #  optional change to your own favicon.co
+      # - /var/log/flame-dash:/app/log  #  optional external access.log remote logging or fail2ban
       # - /var/run/docker.sock:/var/run/docker.sock # optional but required for Docker integration
     ports:
       - 5005:5005
@@ -14,9 +16,17 @@ services:
     environment:
       - PASSWORD=flame_password
       # - PASSWORD_FILE=/run/secrets/password # optional but required for (1)
+      # - WEATHER_CACHE_HOURS=6  #  optional to cut down calls to weather api
     restart: unless-stopped
-    
+
 # optional but required for Docker secrets (1)
 # secrets:
 #   password:
 #     file: /path/to/secrets/password
+
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:5005/health"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+

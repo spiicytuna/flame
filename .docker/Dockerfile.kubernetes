@@ -1,0 +1,32 @@
+# --- Base
+FROM node:22-alpine AS base
+WORKDIR /app
+
+ENV NODE_ENV=development
+
+# --- Dependencies
+FROM base AS deps
+WORKDIR /app
+
+COPY package*.json ./
+COPY client/package*.json ./client/
+
+# server deps
+RUN npm install
+# client deps
+RUN cd client && npm install --legacy-peer-deps
+
+# --- DEV
+FROM base AS development
+WORKDIR /app
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/client/node_modules ./client/node_modules
+
+COPY . .
+# expose vite
+EXPOSE 5005
+EXPOSE 5173
+
+# cmd will be overridden by skaffold
+CMD ["sh", "-c", "npm run dev"]
