@@ -1,30 +1,43 @@
-FROM node:16 as builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# --- Server Deps ---
 COPY package*.json ./
-
 RUN npm install --production
 
+# --- Install+Build Deps ---
+WORKDIR /app/client
+COPY ./client/package*.json ./
+RUN npm install --legacy-peer-deps
+COPY ./client/ ./
+RUN npm run build
+
+# --- Final Files ---
+WORKDIR /app
 COPY . .
+RUN mkdir -p ./public && mv ./client/dist/* ./public
+# Clean up the client source code
+RUN rm -rf ./client
 
-RUN mkdir -p ./public ./data \
-    && cd ./client \
-    && npm install --production \
-    && npm run build \
-    && cd .. \
-    && mv ./client/build/* ./public \
-    && rm -rf ./client
-
-FROM node:16-alpine
-
-COPY --from=builder /app /app
+# ---- Final Stage ----
+FROM node:22-alpine
 
 WORKDIR /app
+
+# Copy app from build
+COPY --from=builder /app /app
+
+# runtime OS deps
+RUN apk add --no-cache curl jq sqlite
+
+ENV NODE_ENV=production
+
+RUN mkdir -p /app/data /app/log \
+    && chown -R node:node /app/data /app/log /app/public
+
+USER node
 
 EXPOSE 5005
 
-ENV NODE_ENV=production
-ENV PASSWORD=flame_password
-
-CMD ["sh", "-c", "chown -R node /app/data && node server.js"]
+CMD ["node", "server.js"]
