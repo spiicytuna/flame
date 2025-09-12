@@ -1,7 +1,12 @@
 ### v0.02 (2025-09-08)
 - Application categories can collapse
 - Collapsible app cats can be configured settings > interface > categories
-- FIX: bugs introduced by collapse settings => state synchronization between pages
+- FIX: bugs introduced by collapse Settings => state synchronization between pages
+- FIX: restore 'CSS' menu option in Settings
+- Updated nodemon 2.0.14 => 3.1.10 (security/vulnerability)
+- Updated @types/node 16.11.6 => 24.3.1 (security/vulnerability)
+- Updated redux-devtools-extension (requires Redux 3) => @redux-devtools/extension (Redux 5 and beyond)
+- Updated codebase to remove extinct react-beautiful-dnd for @dnd-kit (security/vulnerability)
 
 ### v0.01 (2025-09-06)
 - Fixed secure route blocking logging in via settings
