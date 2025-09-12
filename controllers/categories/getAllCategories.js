@@ -27,16 +27,35 @@ const getAllCategories = asyncWrapper(async (req, res, next) => {
           [{ model: Bookmark, as: 'bookmarks' }, orderType, 'ASC'],
         ];
 
-  categories = categories = await Category.findAll({
-    include: [
-      {
-        model: Bookmark,
-        as: 'bookmarks',
-      },
-    ],
-    order,
-    where,
-  });
+  try {
+    // between tuna-combo and legacy flame => hide app cats
+    // others ! extra fields
+    const augmentedWhere = { ...where, section: 'bookmarks' };
+    
+    categories = await Category.findAll({
+      include: [
+        {
+          model: Bookmark,
+          as: 'bookmarks',
+        },
+      ],
+      order,
+      where: augmentedWhere,
+    });
+  } catch (error) {
+    console.warn('Warning: Could not filter categories by "section" for Bookmarks. This is expected if you are running legacy Flame e.g. not flame-dev:latest. Falling back to fetching all categories to display in Bookmarks section.');
+    
+    categories = await Category.findAll({
+      include: [
+        {
+          model: Bookmark,
+          as: 'bookmarks',
+        },
+      ],
+      order,
+      where,
+    });
+  }
 
   if (req.isAuthenticated) {
     output = categories;
