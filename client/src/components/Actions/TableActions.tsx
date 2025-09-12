@@ -71,9 +71,9 @@ export const TableActions = (props: Props): JSX.Element => {
         tabIndex={0}
       >
         {entity.isPublic ? (
-          <Icon icon="mdiEyeOff" color="var(--color-accent)" />
+          <Icon icon="mdiEye" /> // Show "Visible" icon when public
         ) : (
-          <Icon icon="mdiEye" />
+          <Icon icon="mdiEyeOff" color="var(--color-accent)" /> // Show "Hidden" icon when not public
         )}
       </div>
     </td>

@@ -30,6 +30,12 @@ const Category = sequelize.define(
         isIn: [['apps', 'bookmarks']],
       },
     },
+    abbreviation: {
+        type: DataTypes.STRING(3),
+        allowNull: false,
+        defaultValue: '—',
+        validate: { len: [1, 3] },
+    },
   },
   {
     tableName: 'categories',
