@@ -1,12 +1,24 @@
-// Ensures apps.categoryId exists, is NOT NULL, indexed, and FK -> categories(id) with
-// ON UPDATE CASCADE / ON DELETE RESTRICT. Idempotent for already-migrated DBs.
+//  apps.categoryId exists ?? is NOT NULL ?? indexed ?? and FK -> categories(id)
 
 module.exports = {
   up: async (queryInterface) => {
     const sequelize = queryInterface.sequelize;
     const t = await sequelize.transaction();
     try {
-      // 1) Make sure the "Uncategorized" (apps) category exists
+      // based on code... older db ! categories.section
+      const [catCols0] = await sequelize.query(`PRAGMA table_info('categories');`, { transaction: t });
+      const hasSection = Array.isArray(catCols0) && catCols0.some(c => c.name === 'section');
+      if (!hasSection) {
+        // add+backfill
+        await sequelize.query(`ALTER TABLE categories ADD COLUMN section TEXT;`, { transaction: t });
+        await sequelize.query(`
+          UPDATE categories
+          SET section = 'bookmarks'
+          WHERE section IS NULL OR TRIM(section) = '';
+        `, { transaction: t });
+      }
+
+      // Uncategorized exists ??
       await sequelize.query(`
         INSERT INTO categories (name, isPinned, createdAt, updatedAt, orderId, isPublic, section)
         SELECT 'Uncategorized', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP,
@@ -17,16 +29,15 @@ module.exports = {
         );
       `, { transaction: t });
 
-      // 2) Does apps.categoryId exist?
+      // apps.categoryId exist ??
       const [cols1] = await sequelize.query(`PRAGMA table_info('apps');`, { transaction: t });
       const hasCategoryId = Array.isArray(cols1) && cols1.some(c => c.name === 'categoryId');
 
-      // If missing, add it (nullable for the moment)
       if (!hasCategoryId) {
         await sequelize.query(`ALTER TABLE apps ADD COLUMN categoryId INTEGER;`, { transaction: t });
       }
 
-      // 3) Backfill any NULL categoryId with the "Uncategorized" apps category
+      // backfill NULL => uncategorized
       await sequelize.query(`
         UPDATE apps
         SET categoryId = (
@@ -37,7 +48,6 @@ module.exports = {
         WHERE categoryId IS NULL;
       `, { transaction: t });
 
-      // 4) Check if FK already exists and column is NOT NULL
       const [fks] = await sequelize.query(`PRAGMA foreign_key_list('apps');`, { transaction: t });
       const hasFk = Array.isArray(fks) && fks.some(fk => fk.table === 'categories' && fk.from === 'categoryId');
 
@@ -45,7 +55,6 @@ module.exports = {
       const catCol = Array.isArray(cols2) ? cols2.find(c => c.name === 'categoryId') : null;
       const isNotNull = !!catCol && catCol.notnull === 1;
 
-      // 5) If NOT NULL constraint or FK are missing, rebuild table with proper schema
       if (!hasFk || !isNotNull) {
         await sequelize.query(`ALTER TABLE apps RENAME TO apps_old;`, { transaction: t });
 
@@ -78,7 +87,7 @@ module.exports = {
         await sequelize.query(`DROP TABLE apps_old;`, { transaction: t });
       }
 
-      // 6) Ensure index on apps(categoryId)
+      // index on apps(categoryId) ??
       const [idxList] = await sequelize.query(`PRAGMA index_list('apps');`, { transaction: t });
       const hasIndex = Array.isArray(idxList) && idxList.some(i => i.name === 'idx_apps_categoryId');
       if (!hasIndex) {
@@ -92,7 +101,6 @@ module.exports = {
     }
   },
 
-  // Down: remove the FK + NOT NULL by recreating the table with a nullable categoryId and no FK.
   down: async (queryInterface) => {
     const sequelize = queryInterface.sequelize;
     const t = await sequelize.transaction();
