@@ -1,19 +1,16 @@
-const { DataTypes } = require('sequelize');
-const { STRING } = DataTypes;
+'use strict';
 
 const up = async (query) => {
-  await query.addColumn('apps', 'description', {
-    type: STRING,
-    allowNull: false,
-    defaultValue: '',
-  });
+  const [cols] = await query.sequelize.query(`PRAGMA table_info(apps);`);
+  const hasColumn = Array.isArray(cols) && cols.some(c => c.name === 'description');
+
+  if (!hasColumn) {
+    await query.sequelize.query(`
+      ALTER TABLE apps ADD COLUMN description VARCHAR(255) NOT NULL DEFAULT '';
+    `);
+  }
 };
 
-const down = async (query) => {
-  await query.removeColumn('apps', 'description');
-};
+const down = async (query) => {};
 
-module.exports = {
-  up,
-  down,
-};
+module.exports = { up, down };

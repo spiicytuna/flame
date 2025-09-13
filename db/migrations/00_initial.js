@@ -1,178 +1,68 @@
-const { DataTypes } = require('sequelize');
-const { INTEGER, DATE, STRING, TINYINT, FLOAT, TEXT } = DataTypes;
+'use strict';
 
 const up = async (query) => {
-  // CONFIG TABLE
-  await query.createTable('config', {
-    id: {
-      type: INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    key: {
-      type: STRING,
-      allowNull: false,
-      unique: true,
-    },
-    value: {
-      type: STRING,
-      allowNull: false,
-    },
-    valueType: {
-      type: STRING,
-      allowNull: false,
-    },
-    isLocked: {
-      type: TINYINT,
-      defaultValue: 0,
-    },
-    createdAt: {
-      type: DATE,
-      allowNull: false,
-    },
-    updatedAt: {
-      type: DATE,
-      allowNull: false,
-    },
-  });
+  await query.sequelize.query(`
+    CREATE TABLE config (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      key        VARCHAR(255) NOT NULL UNIQUE,
+      value      VARCHAR(255) NOT NULL,
+      valueType  VARCHAR(255) NOT NULL,
+      isLocked   TINYINT DEFAULT 0,
+      createdAt  DATETIME NOT NULL,
+      updatedAt  DATETIME NOT NULL
+    );
+  `);
 
-  // WEATHER TABLE
-  await query.createTable('weather', {
-    id: {
-      type: INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    externalLastUpdate: {
-      type: STRING,
-    },
-    tempC: {
-      type: FLOAT,
-    },
-    tempF: {
-      type: FLOAT,
-    },
-    isDay: {
-      type: INTEGER,
-    },
-    cloud: {
-      type: INTEGER,
-    },
-    conditionText: {
-      type: TEXT,
-    },
-    conditionCode: {
-      type: INTEGER,
-    },
-    createdAt: {
-      type: DATE,
-      allowNull: false,
-    },
-    updatedAt: {
-      type: DATE,
-      allowNull: false,
-    },
-  });
+  await query.sequelize.query(`
+    CREATE TABLE weather (
+      id                   INTEGER PRIMARY KEY AUTOINCREMENT,
+      externalLastUpdate   VARCHAR(255),
+      tempC                FLOAT,
+      tempF                FLOAT,
+      isDay                INTEGER,
+      cloud                INTEGER,
+      conditionText        TEXT,
+      conditionCode        INTEGER,
+      createdAt            DATETIME NOT NULL,
+      updatedAt            DATETIME NOT NULL
+    );
+  `);
 
-  // CATEGORIES TABLE
-  await query.createTable('categories', {
-    id: {
-      type: INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    name: {
-      type: STRING,
-      allowNull: false,
-    },
-    isPinned: {
-      type: TINYINT,
-      defaultValue: 0,
-    },
-    createdAt: {
-      type: DATE,
-      allowNull: false,
-    },
-    updatedAt: {
-      type: DATE,
-      allowNull: false,
-    },
-    orderId: {
-      type: INTEGER,
-      defaultValue: null,
-    },
-  });
+  await query.sequelize.query(`
+    CREATE TABLE categories (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       VARCHAR(255) NOT NULL,
+      isPinned   TINYINT DEFAULT 0,
+      createdAt  DATETIME NOT NULL,
+      updatedAt  DATETIME NOT NULL,
+      orderId    INTEGER DEFAULT NULL
+    );
+  `);
 
-  // BOOKMARKS TABLE
-  await query.createTable('bookmarks', {
-    id: {
-      type: INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    name: {
-      type: STRING,
-      allowNull: false,
-    },
-    url: {
-      type: STRING,
-      allowNull: false,
-    },
-    categoryId: {
-      type: INTEGER,
-      allowNull: false,
-    },
-    icon: {
-      type: STRING,
-      defaultValue: '',
-    },
-    createdAt: {
-      type: DATE,
-      allowNull: false,
-    },
-    updatedAt: {
-      type: DATE,
-      allowNull: false,
-    },
-  });
+  await query.sequelize.query(`
+    CREATE TABLE bookmarks (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      name        VARCHAR(255) NOT NULL,
+      url         VARCHAR(255) NOT NULL,
+      categoryId  INTEGER NOT NULL,
+      icon        VARCHAR(255) DEFAULT '',
+      createdAt   DATETIME NOT NULL,
+      updatedAt   DATETIME NOT NULL
+    );
+  `);
 
-  // APPS TABLE
-  await query.createTable('apps', {
-    id: {
-      type: INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    name: {
-      type: STRING,
-      allowNull: false,
-    },
-    url: {
-      type: STRING,
-      allowNull: false,
-    },
-    icon: {
-      type: STRING,
-      allowNull: false,
-      defaultValue: 'cancel',
-    },
-    isPinned: {
-      type: TINYINT,
-      defaultValue: 0,
-    },
-    createdAt: {
-      type: DATE,
-      allowNull: false,
-    },
-    updatedAt: {
-      type: DATE,
-      allowNull: false,
-    },
-    orderId: {
-      type: INTEGER,
-      defaultValue: null,
-    },
-  });
+  await query.sequelize.query(`
+    CREATE TABLE apps (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       VARCHAR(255) NOT NULL,
+      url        VARCHAR(255) NOT NULL,
+      icon       VARCHAR(255) NOT NULL DEFAULT 'cancel',
+      isPinned   TINYINT DEFAULT 0,
+      createdAt  DATETIME NOT NULL,
+      updatedAt  DATETIME NOT NULL,
+      orderId    INTEGER DEFAULT NULL
+    );
+  `);
 };
 
 const down = async (query) => {
@@ -183,7 +73,4 @@ const down = async (query) => {
   await query.dropTable('apps');
 };
 
-module.exports = {
-  up,
-  down,
-};
+module.exports = { up, down };
