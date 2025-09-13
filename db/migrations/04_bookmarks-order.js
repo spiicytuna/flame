@@ -1,19 +1,16 @@
-const { DataTypes } = require('sequelize');
-const { INTEGER } = DataTypes;
+'use strict';
 
 const up = async (query) => {
-  await query.addColumn('bookmarks', 'orderId', {
-    type: INTEGER,
-    allowNull: true,
-    defaultValue: null,
-  });
+  const [cols] = await query.sequelize.query(`PRAGMA table_info(bookmarks);`);
+  const hasColumn = Array.isArray(cols) && cols.some(c => c.name === 'orderId');
+
+  if (!hasColumn) {
+    await query.sequelize.query(`
+      ALTER TABLE bookmarks ADD COLUMN orderId INTEGER DEFAULT NULL;
+    `);
+  }
 };
 
-const down = async (query) => {
-  await query.removeColumn('bookmarks', 'orderId');
-};
+const down = async (query) => {};
 
-module.exports = {
-  up,
-  down,
-};
+module.exports = { up, down };

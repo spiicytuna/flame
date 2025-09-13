@@ -1,27 +1,20 @@
-const { DataTypes } = require('sequelize');
-const { INTEGER } = DataTypes;
+'use strict';
 
 const tables = ['categories', 'bookmarks', 'apps'];
 
 const up = async (query) => {
-  const template = {
-    type: INTEGER,
-    allowNull: true,
-    defaultValue: 1,
-  };
-
   for await (let table of tables) {
-    await query.addColumn(table, 'isPublic', template);
+    const [cols] = await query.sequelize.query(`PRAGMA table_info(${table});`);
+    const hasColumn = Array.isArray(cols) && cols.some(c => c.name === 'isPublic');
+
+    if (!hasColumn) {
+      await query.sequelize.query(`
+        ALTER TABLE ${table} ADD COLUMN isPublic INTEGER DEFAULT 1;
+      `);
+    }
   }
 };
 
-const down = async (query) => {
-  for await (let table of tables) {
-    await query.removeColumn(table, 'isPublic');
-  }
-};
+const down = async (query) => {};
 
-module.exports = {
-  up,
-  down,
-};
+module.exports = { up, down };

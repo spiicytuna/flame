@@ -1,27 +1,19 @@
-const { DataTypes } = require('sequelize');
-const { INTEGER, FLOAT } = DataTypes;
+'use strict';
 
 const up = async (query) => {
-  await query.addColumn('weather', 'humidity', {
-    type: INTEGER,
-  });
-
-  await query.addColumn('weather', 'windK', {
-    type: FLOAT,
-  });
-
-  await query.addColumn('weather', 'windM', {
-    type: FLOAT,
-  });
+  const [cols] = await query.sequelize.query(`PRAGMA table_info(weather);`);
+  
+  if (!cols.some(c => c.name === 'humidity')) {
+    await query.sequelize.query(`ALTER TABLE weather ADD COLUMN humidity INTEGER;`);
+  }
+  if (!cols.some(c => c.name === 'windK')) {
+    await query.sequelize.query(`ALTER TABLE weather ADD COLUMN windK FLOAT;`);
+  }
+  if (!cols.some(c => c.name === 'windM')) {
+    await query.sequelize.query(`ALTER TABLE weather ADD COLUMN windM FLOAT;`);
+  }
 };
 
-const down = async (query) => {
-  await query.removeColumn('weather', 'humidity');
-  await query.removeColumn('weather', 'windK');
-  await query.removeColumn('weather', 'windM');
-};
+const down = async (query) => {};
 
-module.exports = {
-  up,
-  down,
-};
+module.exports = { up, down };
