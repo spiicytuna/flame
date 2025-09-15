@@ -4,8 +4,9 @@ WORKDIR /app
 
 # --- Server Deps
 COPY package*.json ./
+RUN npm install -g npm@latest
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --production --no-audit --no-fund
+    npm install --omit=dev --no-audit --no-fund
 
 # --- Install+Build Deps
 WORKDIR /app/client
