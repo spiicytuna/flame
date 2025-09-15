@@ -22,7 +22,7 @@
     "react-router-dom": "^7.8.2",
     "redux": "^5.0.1",
     "redux-thunk": "^3.1.0",
-    "skycons-ts": "^0.2.0",
+    "skycons-ts": "^1.0.0",
     "typescript": "^5.9.2"
   },
   "scripts": {
@@ -52,7 +52,7 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.2",
     "cross-env": "^10.0.0",
-    "prettier": "^2.4.1",
+    "prettier": "^3.6.2",
     "vite": "^7.1.4",
     "vite-plugin-svgr": "^4.5.0",
     "vite-tsconfig-paths": "^5.1.4"
