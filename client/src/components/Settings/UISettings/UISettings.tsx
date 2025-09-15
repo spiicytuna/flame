@@ -14,7 +14,7 @@ import { InputGroup, Button, SettingsHeadline } from '../../UI';
 
 // Utils
 import { uiSettingsTemplate, inputHandler } from '../../../utility';
-import { iconParser } from '../../../utility/iconParser';
+import { iconParser, parseMdiName } from '../../../utility/iconParser';
 
 export const UISettings = (): JSX.Element => {
   const { loading, config } = useSelector((state: State) => state.config);
@@ -271,7 +271,7 @@ export const UISettings = (): JSX.Element => {
           id="categoryCollapseIcon"
           name="categoryCollapseIcon"
           placeholder="mdiChevronRight"
-          value={formData.categoryCollapseIcon || 'mdiChevronRight'}
+	  value={parseMdiName(formData.categoryCollapseIcon || 'mdiChevronRight')}
           onChange={(e) => inputChangeHandler(e)}
         />
         <span>
@@ -288,7 +288,7 @@ export const UISettings = (): JSX.Element => {
           id="categoryCollapseIconHover"
           name="categoryCollapseIconHover"
           placeholder="mdiChevronRightCircleOutline"
-          value={formData.categoryCollapseIconHover || 'mdiChevronRightCircleOutline'}
+	  value={parseMdiName(formData.categoryCollapseIconHover || 'mdiChevronRightCircleOutline')}
           onChange={(e) => inputChangeHandler(e)}
         />
         <span>
