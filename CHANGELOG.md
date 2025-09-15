@@ -1,3 +1,11 @@
+### v2.4.2 (2025-09-15)
+- Updated prettier v2.4.1 => 3.6.2
+- Updated skycons-ts v0.2.0 => 1.0.0 (animated weather icons)
+- Updated sequelize v6.37.7 => 6.9.0
+- Updated sqlite3 v5.0.2 => 5.1.7 
+- Updated umzug v2.3.0 => 3.8.2
+- Minor update to database migration tool to support umzug 3.8.2 along with logging output to console
+
 ### v2.4.1 (2025-09-09)
 - Updated nodemon 2.0.14 => 3.1.10 (security/vulnerability)
 - Updated @types/node 16.11.6 => 24.3.1 (security/vulnerability)
