@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const getWather = require('../controllers/weather/getWather');
-const { clearWeatherCache } = require('../Socket');
+const { clearWeatherCache } = require('../utils/weather');
 
 // Main weather API
 router.get('/', getWather);

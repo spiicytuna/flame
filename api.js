@@ -26,12 +26,12 @@ api.use('/api/queries', require('./routes/queries'));
 api.use('/api/auth', require('./routes/auth'));
 api.use('/api/themes', require('./routes/themes'));
 api.use('/api/changelog', changelog);
+api.use('/app/changelog', changelog);
 api.use('/api/version', version);
 
 api.get(/^\/(?!api)/, (req, res) => {
   res.sendFile(join(__dirname, 'public/index.html'));
 });
-app.use('/health', require('./routes/health'));
 
 // Custom error handler
 api.use(errorHandler);

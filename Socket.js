@@ -6,51 +6,6 @@ const loadConfig = require('./utils/loadConfig');
 
 const logger = new Logger();
 
-let weatherCache = {}; // make it mutable and accessible for clearing
-
-function clearWeatherCache() {
-  weatherCache = {};
-  logger.log('[Weather] Cache cleared');
-}
-
-const WEATHER_TTL = (() => {  // set env var in docker-compose WEATHER_CACHE_HOURS=1 // defaults to 3 hours if not set
-  let hours = parseInt(process.env.WEATHER_CACHE_HOURS || '3', 10);
-
-  if (isNaN(hours) || hours < 1) {
-    console.warn('[WARN] WEATHER_CACHE_HOURS must be a positive number. Defaulting to 3.');
-    hours = 3;
-  } else if (hours > 24) {
-    console.warn(`[WARN] WEATHER_CACHE_HOURS=${hours} is too high. Capping to 23 hours.`);
-    hours = 23;
-  }
-
-  return hours * 60 * 60 * 1000;
-})();
-
-async function getWeatherCached(lat, lon) {
-  const key = `${lat},${lon}`;
-  const now = Date.now();
-
-  if (weatherCache[key] && (now - weatherCache[key].timestamp) < WEATHER_TTL) {
-    logger.log(`[Weather] Serving from cache for key ${key}`);
-    return weatherCache[key].data;
-  }
-
-  try {
-    logger.log(`[Weather] Fetching fresh data from WeatherAPI for key ${key}`);
-    const data = await getWeather(lat, lon);
-    weatherCache[key] = {
-      data,
-      timestamp: now
-    };
-    return data;
-  } catch (err) {
-    logger.log('[Weather] Failed to fetch weather:', err.message);
-    return null;
-  }
-}
-
-
 class Socket {
   constructor(server) {
     this.webSocketServer = new WebSocket.Server({ server });
@@ -76,11 +31,12 @@ class Socket {
           lon = loc?.lon || config.long;
         }
 
-        const weather = await getWeatherCached(lat, lon);
+        const weather = await getWeather(lat, lon);
         if (weather) {
           client.send(JSON.stringify(weather));
-	  const modeLabel = config.weatherMode === 'fixed' ? 'Fixed lat/lon' : 'GeoIP';
-          logger.log(`[Weather] WebSocket sent: ${weather.tempC || weather.temp}°C ${weather.conditionText || weather.condition} in ${weather.location || weather.name} (${modeLabel})`);
+          const modeLabel = config.weatherMode === 'fixed' ? 'Fixed lat/lon' : 'GeoIP';
+          const sourceLabel = weather.source === 'cache' ? 'from cache' : 'from API';
+          logger.log(`[Weather] WebSocket sent ${sourceLabel}: ${weather.tempC || weather.temp}°C ${weather.conditionText || weather.condition} in ${weather.location || weather.name} (${modeLabel})`);
         } else {
           logger.log('[Weather] No weather data available for client');
         }
@@ -89,15 +45,6 @@ class Socket {
       }
     });
   }
-
-  send(msg) {
-    this.webSocketServer.clients.forEach(client => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(msg);
-      }
-    });
-  }
 }
 
 module.exports = Socket;
-module.exports.clearWeatherCache = clearWeatherCache;
