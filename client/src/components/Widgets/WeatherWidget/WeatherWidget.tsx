@@ -24,27 +24,6 @@ export const WeatherWidget = (): JSX.Element => {
   const [weather, setWeather] = useState<Weather>(weatherTemplate);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initial request to get data
-  useEffect(() => {
-    // Only make the API call if there is a key
-    if (config.WEATHER_API_KEY) {
-      axios
-        .get<ApiResponse<Weather[]>>('/api/weather')
-        .then((data) => {
-          const weatherData = data.data.data[0];
-          if (weatherData) {
-            setWeather(weatherData);
-          }
-        })
-        .catch((err) => console.log(err))
-        .finally(() => setIsLoading(false)); // Always stop loading
-    } else {
-      // If no key is present => do nothing
-      setIsLoading(false);
-    }
-    // Re-run if API key is added, updated, or removed
-  }, [config.WEATHER_API_KEY]);
-
   // socket for updates
   useEffect(() => {
     // guard the socket connection.
@@ -59,10 +38,11 @@ export const WeatherWidget = (): JSX.Element => {
 
     webSocketClient.onmessage = (e) => {
       const data = JSON.parse(e.data);
-      setWeather({
-        ...weather,
+      setWeather(w => ({
+        ...w,
         ...data,
-      });
+      }));
+      setIsLoading(false);
     };
 
     return () => webSocketClient.close();
@@ -104,7 +84,7 @@ export const WeatherWidget = (): JSX.Element => {
               <span>{weather.location}</span>
             </div>
           </div>
-  
+
           <div className={classes.WeatherDetails}>
             {config.isCelsius ? (
               <span>{weather.tempC}°C</span>

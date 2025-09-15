@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const fetch = require('node-fetch');
+const axios = require('axios');
 const loadConfig = require('./loadConfig');
 
 const cachePath = '/app/data/geo-cache.json';
@@ -15,15 +15,13 @@ async function getGeoFromIP(ip) {
 
   const providers = [
     async () => {
-      const res = await fetch(`http://ip-api.com/json/${cleanIP}?fields=lat,lon`);
-      const data = await res.json();
-      if (data?.lat && data?.lon) return data;
+      const res = await axios.get(`http://ip-api.com/json/${cleanIP}?fields=lat,lon`);
+      if (res.data?.lat && res.data?.lon) return res.data;
     },
     async () => {
-      const res = await fetch(`https://ipinfo.io/${cleanIP}/loc`);
-      const text = await res.text();
-      if (text.includes(',')) {
-        const [lat, lon] = text.trim().split(',');
+      const res = await axios.get(`https://ipinfo.io/${cleanIP}/loc`);
+      if (typeof res.data === 'string' && res.data.includes(',')) {
+        const [lat, lon] = res.data.trim().split(',');
         return { lat: parseFloat(lat), lon: parseFloat(lon) };
       }
     }
