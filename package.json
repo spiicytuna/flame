@@ -28,9 +28,9 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "node-schedule": "^2.0.0",
-    "sequelize": "^6.9.0",
-    "sqlite3": "^5.0.2",
-    "umzug": "^2.3.0",
+    "sequelize": "^6.37.7",
+    "sqlite3": "^5.1.7",
+    "umzug": "^3.8.2",
     "ws": "^8.2.3"
   },
   "devDependencies": {

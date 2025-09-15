@@ -1,7 +1,7 @@
 const { Sequelize } = require('sequelize');
 const { join } = require('path');
-const fs = require('fs'); // NEW
-const Umzug = require('umzug');
+const fs = require('fs');
+const { Umzug, SequelizeStorage } = require('umzug');
 
 // Utils
 const backupDB = require('./utils/backupDb');
@@ -16,13 +16,19 @@ const sequelize = new Sequelize({
 
 const umzug = new Umzug({
   migrations: {
-    path: join(__dirname, './migrations'),
-    // Umzug v2 passes queryInterface as the 1st param to your migration functions
-    params: [sequelize.getQueryInterface()],
-    pattern: /\.js$/, // explicit, just in case
+    glob: 'migrations/*.js',
+    resolve: ({ name, path, context }) => {
+      const migration = require(path);
+      return {
+        name,
+        up: async () => migration.up(context),
+        down: async () => migration.down(context),
+      };
+    },
   },
-  storage: 'sequelize',
-  storageOptions: { sequelize },
+  context: sequelize.getQueryInterface(),
+  storage: new SequelizeStorage({ sequelize }),
+  logger: console,
 });
 
 const connectDB = async () => {
@@ -47,14 +53,14 @@ const connectDB = async () => {
     const executed = await umzug.executed();
     logger.log(
       `Executed migrations: ${
-        executed.length ? executed.map((m) => m.file).join(', ') : '(none)'
+        executed.length ? executed.map((m) => m.name).join(', ') : '(none)'
       }`
     );
 
     const pending = await umzug.pending();
     logger.log(
       `Pending migrations: ${
-        pending.length ? pending.map((m) => m.file).join(', ') : '(none)'
+        pending.length ? pending.map((m) => m.name).join(', ') : '(none)'
       }`
     );
 
