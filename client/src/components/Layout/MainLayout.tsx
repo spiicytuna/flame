@@ -20,9 +20,21 @@ export const MainLayout = ({ children }: Props): JSX.Element => {
 
   // This hook loads ALL initial data
   useEffect(() => {
+    // fetch => prim data
     store.dispatch<any>(getHomePageData());
+    fetchThemes();
+    fetchQueries();
+    checkVersion();
 
-    const tokenIsValid = setInterval(() => {
+    // theme
+    if (!loading && !localStorage.theme) {
+      setTheme(parsePABToTheme(config.defaultTheme), false);
+    } else if (localStorage.theme) {
+      setTheme(parsePABToTheme(localStorage.theme));
+    }
+
+    // Validate token on an interval
+    const tokenValidator = setInterval(() => {
       if (localStorage.token) {
         const expiresIn = decodeToken(localStorage.token).exp * 1000;
         const now = new Date().getTime();
@@ -34,24 +46,10 @@ export const MainLayout = ({ children }: Props): JSX.Element => {
           });
         }
       }
-    }, 1000);
+    }, 5000);
 
-    fetchThemes();
-    if (localStorage.theme) {
-      setTheme(parsePABToTheme(localStorage.theme));
-    }
-    checkVersion();
-    fetchQueries();
-
-    return () => window.clearInterval(tokenIsValid);
-  }, [isAuthenticated]);
-
-  // If there is no user theme, set the default one
-  useEffect(() => {
-    if (!loading && !localStorage.theme) {
-      setTheme(parsePABToTheme(config.defaultTheme), false);
-    }
-  }, [loading, config]);
+    return () => window.clearInterval(tokenValidator);
+  }, [isAuthenticated, dispatch, loading, config.defaultTheme]); // Correct dependency array
 
   return <>{children}</>;
 };
