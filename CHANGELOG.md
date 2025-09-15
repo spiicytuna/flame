@@ -1,3 +1,11 @@
+### v0.04 (2025-09-14)
+- Updated prettier v2.8.8 => 3.6.2
+- Updated skycons-ts v0.2.0 => 1.0.0 (animated weather icons)
+- Updated weather logic => node-fetch package => axios (sec/vulnerability reasons)
+- Updated weather cache logic moved to socket connection (centralized caching)
+- Updated umzug v2.3.0 => 3.8.2)
+- Changed UI => display icon name versus react ref => 'settings > interface > category icons'
+
 ### v0.03 (2025-09-13)
 - FIX: update db migration scripts to include support for older structures (categories.section)
 - FIX: apply npm security updates for Axios + Vite

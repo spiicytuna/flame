@@ -1,6 +1,6 @@
 {
   "name": "client",
-  "version": "0.03",
+  "version": "0.04",
   "private": true,
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
