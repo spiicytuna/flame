@@ -51,7 +51,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.2",
-    "prettier": "^2.4.1",
+    "cross-env": "^10.0.0",
+    "prettier": "^3.6.2",
     "vite": "^7.1.4",
     "vite-plugin-svgr": "^4.5.0",
     "vite-tsconfig-paths": "^5.1.4"
