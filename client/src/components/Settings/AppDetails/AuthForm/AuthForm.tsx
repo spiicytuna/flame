@@ -10,8 +10,10 @@ import { decodeToken, parseTokenExpire } from '../../../../utility';
 // Other
 import { InputGroup, Button } from '../../../UI';
 import classes from '../AppDetails.module.css';
+import { useNavigate } from 'react-router-dom';
 
 export const AuthForm = (): JSX.Element => {
+  const navigate = useNavigate();
   const { isAuthenticated, token } = useSelector((state: State) => state.auth);
 
   const dispatch = useDispatch();
@@ -45,6 +47,12 @@ export const AuthForm = (): JSX.Element => {
       duration: '14d',
     });
   };
+
+  const doLogout = () => {
+      logout();
+      navigate('/');
+    };
+
 
   return (
     <Fragment>
@@ -102,7 +110,7 @@ export const AuthForm = (): JSX.Element => {
             You are logged in. Your session will expire{' '}
             <span>{tokenExpires}</span>
           </p>
-          <Button click={logout}>Logout</Button>
+          <Button click={doLogout}>Logout</Button>
         </div>
       )}
     </Fragment>
