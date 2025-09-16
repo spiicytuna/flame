@@ -129,8 +129,7 @@ export const AppTable = ({
   // Update useEffect to use the filtered list
   useEffect(() => {
     setLocalApps(appsToShow);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [category.id]);
+  }, [appsToShow]);
   
   const sensors = useSensors(
     useSensor(PointerSensor),
