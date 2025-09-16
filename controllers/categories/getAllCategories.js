@@ -13,13 +13,12 @@ const getAllCategories = asyncWrapper(async (req, res, next) => {
   let categories;
   let output;
 
-  // categories visibility
+  // cat vis
   const section = req.query.section || 'bookmarks';
-
-  // categories visibility + section filter
-  const where = req.isAuthenticated
-    ? { section }
-    : { section, isPublic: true };
+  const where = req.isAuthenticated ? { section } : { section, isPublic: true };
+  
+  // how many ??
+  const totalCategories = await Category.count({ where: { section } });
 
   const order =
     orderType == 'name'
@@ -32,11 +31,14 @@ const getAllCategories = asyncWrapper(async (req, res, next) => {
           [{ model: Bookmark, as: 'bookmarks' }, orderType, 'ASC'],
         ];
 
-  categories = categories = await Category.findAll({
+  categories = await Category.findAll({
     include: [
       {
         model: Bookmark,
         as: 'bookmarks',
+        // public user
+        required: false,
+        where: req.isAuthenticated ? undefined : { isPublic: true }
       },
     ],
     order,
@@ -46,7 +48,7 @@ const getAllCategories = asyncWrapper(async (req, res, next) => {
   if (req.isAuthenticated) {
     output = categories;
   } else {
-    // filter out private bookmarks
+    // filter priv books
     output = categories.map((c) => c.get({ plain: true }));
     output = output.map((c) => ({
       ...c,
@@ -54,9 +56,15 @@ const getAllCategories = asyncWrapper(async (req, res, next) => {
     }));
   }
 
+  // num books
+  const responseData = {
+    categories: output,
+    total: totalCategories
+  }
+
   res.status(200).json({
     success: true,
-    data: output,
+    data: responseData,
   });
 });
 

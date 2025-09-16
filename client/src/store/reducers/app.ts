@@ -6,6 +6,7 @@ import { sortData } from '../../utility';
 interface AppsState {
   loading: boolean;
   apps: App[];
+  totalApps: number;
   errors: string | undefined;
   appInUpdate: App | null;
 }
@@ -13,6 +14,7 @@ interface AppsState {
 const initialState: AppsState = {
   loading: true,
   apps: [],
+  totalApps: 0,
   errors: undefined,
   appInUpdate: null,
 };
@@ -23,19 +25,21 @@ export const appsReducer = (
 ): AppsState => {
   switch (action.type) {
     case ActionType.getAppsSuccess: {
+      const payload = action.payload as { apps: App[], totalApps: number };
       return {
         ...state,
         loading: false,
-        apps: action.payload || [],
+        apps: payload.apps || [],
+        totalApps: payload.totalApps || 0,
       };
     }
-    
+
     case ActionType.fetchHomepageDataSuccess: {
-      const payload = action.payload as { apps: App[], categories: Category[] };
       return {
         ...state,
         loading: false,
-        apps: payload.apps,
+        apps: action.payload.apps.apps,
+        totalApps: action.payload.apps.totalApps,
       };
     }
 
@@ -58,6 +62,7 @@ export const appsReducer = (
       return {
         ...state,
         apps: [...state.apps, action.payload],
+        totalApps: state.totalApps + 1,
       };
     }
 
@@ -65,6 +70,7 @@ export const appsReducer = (
       return {
         ...state,
         apps: [...state.apps].filter((app) => app.id !== action.payload),
+        totalApps: state.totalApps - 1,
       };
     }
 

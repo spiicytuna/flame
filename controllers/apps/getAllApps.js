@@ -1,5 +1,6 @@
 const asyncWrapper = require('../../middleware/asyncWrapper');
 const App = require('../../models/App');
+const Category = require('../../models/Category');
 const { Sequelize } = require('sequelize');
 const loadConfig = require('../../utils/loadConfig');
 
@@ -25,30 +26,50 @@ const getAllApps = asyncWrapper(async (req, res, next) => {
     await useKubernetes(apps);
   }
 
-  // apps visibility
-  const where = req.isAuthenticated ? {} : { isPublic: true };
-
   const order =
     orderType == 'name'
       ? [[Sequelize.fn('lower', Sequelize.col('name')), 'ASC']]
       : [[orderType, 'ASC']];
 
-  apps = await App.findAll({
-    order,
-    where,
-  });
+  // total apps ??
+  const totalApps = await App.count();
+  let visibleApps;
+
+  // show ??
+  if (req.isAuthenticated) {
+    visibleApps = await App.findAll({
+      order,
+    });
+  } else {
+    // public users
+    visibleApps = await App.findAll({
+      order,
+      where: { isPublic: true },
+      include: [{
+        model: Category,
+        as: 'category',
+        where: { isPublic: true },
+        required: true
+      }]
+    });
+  }
+
+  // response => num apps
+  const responseData = {
+    apps: visibleApps,
+    totalApps: totalApps,
+  };
 
   if (process.env.NODE_ENV === 'production') {
-    // Set header to fetch containers info every time
     return res.status(200).setHeader('Cache-Control', 'no-store').json({
       success: true,
-      data: apps,
+      data: responseData,
     });
   }
 
   res.status(200).json({
     success: true,
-    data: apps,
+    data: responseData,
   });
 });
 

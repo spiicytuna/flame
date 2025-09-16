@@ -107,11 +107,11 @@ export const updateBookmark =
         },
       });
 
-      // Check if category was changed
+      // cat changed ??
       const categoryWasChanged = category.curr !== category.prev;
 
       if (categoryWasChanged) {
-        // Delete bookmark from old category
+        // del book => old cat
         dispatch({
           type: ActionType.deleteBookmark,
           payload: {
@@ -120,13 +120,13 @@ export const updateBookmark =
           },
         });
 
-        // Add bookmark to the new category
+        // book => new cat
         dispatch({
           type: ActionType.addBookmark,
           payload: res.data.data,
         });
       } else {
-        // Else update only name/url/icon
+        // update only
         dispatch({
           type: ActionType.updateBookmark,
           payload: res.data.data,
@@ -205,56 +205,40 @@ export const getHomePageData = () => async (dispatch: any) => {
   dispatch({ type: ActionType.getCategories });
 
   try {
-    const [appsResult, appCategoriesResult, bookmarkCategoriesResult] =
-      await Promise.allSettled([
-        axios.get<ApiResponse<App[]>>('/api/apps', { headers: applyAuth() }),
-        axios.get<ApiResponse<Category[]>>('/api/categories?section=apps', {
-          headers: applyAuth(),
-        }),
-        axios.get<ApiResponse<Category[]>>('/api/categories?section=bookmarks', {
-          headers: applyAuth(),
-        }),
-      ]);
+    type AppsApiResponse = ApiResponse<{ apps: App[]; totalApps: number }>;
+    type CatsApiResponse = ApiResponse<{ categories: Category[]; total: number }>;
 
-    const apps =
-      appsResult.status === 'fulfilled' ? appsResult.value.data.data ?? [] : [];
-    const appCategories =
-      appCategoriesResult.status === 'fulfilled'
-        ? appCategoriesResult.value.data.data ?? []
-        : [];
-    const bookmarkCategories =
-      bookmarkCategoriesResult.status === 'fulfilled'
-        ? bookmarkCategoriesResult.value.data.data ?? []
-        : [];
+    const [appsRes, appsCatRes, bookmarksCatRes] = await Promise.all([
+      axios.get<AppsApiResponse>('/api/apps', { headers: applyAuth() }),
+      axios.get<CatsApiResponse>('/api/categories?section=apps', { headers: applyAuth() }),
+      axios.get<CatsApiResponse>('/api/categories?section=bookmarks', { headers: applyAuth() }),
+    ]);
 
-    const allCategories = [...bookmarkCategories];
+    // apps
+    const appsPayload = appsRes.data?.data ?? { apps: [], totalApps: 0 };
+
+    // cats
+    const appCategories = appsCatRes.data?.data?.categories ?? [];
+    const bookmarkCategories = bookmarksCatRes.data?.data?.categories ?? [];
+    const totalBookmarkCategories = bookmarksCatRes.data?.data?.total ?? 0;
+
+    const allCategories: Category[] = [...bookmarkCategories];
     const bookmarkIds = new Set(bookmarkCategories.map((c) => c.id));
-    
-    appCategories.forEach((appCat) => {
-      if (!bookmarkIds.has(appCat.id)) {
-        allCategories.push(appCat);
-      }
-    });
+    for (const appCat of appCategories) {
+      if (!bookmarkIds.has(appCat.id)) allCategories.push(appCat);
+    }
 
     dispatch({
-      type: ActionType.getAppsSuccess,
-      payload: apps,
-    });
-
-    dispatch({
-      type: ActionType.getCategoriesSuccess,
-      payload: allCategories,
+      type: ActionType.fetchHomepageDataSuccess,
+      payload: {
+        apps: appsPayload,
+        categories: allCategories,
+        totalBookmarkCategories,
+      },
     });
   } catch (err: any) {
-    console.error("Failed during homepage data processing:", err);
-    // generic error handling
-    dispatch({
-      type: ActionType.getAppsError,
-      payload: 'Failed to fetch apps',
-    });
-    dispatch({
-      type: ActionType.getCategoriesError,
-      payload: 'Failed to fetch categories',
-    });
+    console.error('Failed during homepage data processing:', err);
+    dispatch({ type: ActionType.getAppsError, payload: 'Failed to fetch apps' });
+    dispatch({ type: ActionType.getCategoriesError, payload: 'Failed to fetch categories' });
   }
 };

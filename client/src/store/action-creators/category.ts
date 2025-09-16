@@ -29,25 +29,27 @@ export const getCategoriesForSection =
     dispatch({ type: ActionType.getCategories });
 
     try {
-      const res = await axios.get<ApiResponse<Category[]>>(
+      type CatsApiResponse = ApiResponse<{ categories: Category[]; total: number }>;
+      const res = await axios.get<CatsApiResponse>(
         `/api/categories?section=${section}`,
         { headers: applyAuth() }
       );
 
-      const incoming = res.data.data ?? [];
+      const incoming: Category[] = res.data?.data?.categories ?? [];
+      const total: number = res.data?.data?.total ?? 0;
+
       const state = getState();
       const current: Category[] = state?.categories?.categories ?? [];
 
       const incomingIds = new Set(incoming.map((c) => c.id));
       const kept = current.filter(
-        (c: any) => c.section !== section && !incomingIds.has(c.id)
+        (c: Category) => c.section !== section && !incomingIds.has(c.id)
       );
-
       const merged = [...kept, ...incoming];
 
       dispatch({
         type: ActionType.getCategoriesSuccess,
-        payload: merged,
+        payload: { categories: merged, total },
       });
     } catch (err: any) {
       dispatch({
@@ -62,7 +64,7 @@ export const expandAllCategories = () => async (dispatch: Dispatch) => {
     // expand cats
     await axios.put('/api/categories/expand-all', {}, { headers: applyAuth() });
 
-    // Redux => expand cats
+    // redux
     dispatch({ type: ActionType.expandAllCategories });
   } catch (err) {
     console.error('Failed to expand all categories:', err);
