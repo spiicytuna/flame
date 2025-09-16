@@ -1,14 +1,12 @@
-import axios from 'axios';
 import { ActionType } from '../action-types';
-import { Category, ApiResponse } from '../../interfaces';
+import { Category } from '../../interfaces';
 import { CategoryAction } from '../actions/categoryActions';
-import { Dispatch } from 'redux';
-import { applyAuth } from '../../utility';
 
 interface CategoryState {
   loading: boolean;
   errors: string | undefined;
   categories: Category[];
+  totalCategories: number;
   categoryInEdit: Category | null;
 }
 
@@ -16,31 +14,9 @@ const initialState: CategoryState = {
   loading: true,
   errors: undefined,
   categories: [],
+  totalCategories: 0,
   categoryInEdit: null,
 };
-
-export const getCategoriesForSection =
-  (section: 'bookmarks' | 'apps') =>
-  async (dispatch: Dispatch) => {
-    try {
-      const res = await axios.get<ApiResponse<Category[]>>(
-        `/api/categories?section=${section}`,
-        { headers: applyAuth() }
-      );
-      dispatch({
-        type: ActionType.getCategoriesSuccess,
-        payload: {
-          categories: res.data.data ?? [],
-          section: section,
-        },
-      });
-    } catch (err: any) {
-      dispatch({
-        type: ActionType.getCategoriesError,
-        payload: err?.message || 'Failed to fetch categories',
-      });
-    }
-  };
 
 export const categoriesReducer = (
   state: CategoryState = initialState,
@@ -58,24 +34,25 @@ export const categoriesReducer = (
         ...state,
         loading: false,
         categories: action.payload.categories,
+        totalCategories: action.payload.totalBookmarkCategories,
       };
 
     case ActionType.getCategoriesSuccess: {
-      const incoming = action.payload; 
+      const { categories: incoming, total } = action.payload;
       const current = state.categories;
 
-      // valid array
+      // valid array ??
       if (!Array.isArray(incoming) || !Array.isArray(current)) {
         return { ...state, loading: false };
       }
-      
+
       const incomingIds = new Set(incoming.map((c) => c.id));
-      
+
       // filter dupes
       const kept = current.filter((c: any) => !incomingIds.has(c.id));
       const merged = [...kept, ...incoming];
       
-      return { ...state, loading: false, categories: merged };
+      return { ...state, loading: false, categories: merged, totalCategories: total };
     }
 
     case ActionType.getCategoriesError:
@@ -121,7 +98,7 @@ export const categoriesReducer = (
 
     case ActionType.setEditCategory:
       return { ...state, categoryInEdit: action.payload };
-      
+
     default:
       return state;
   }

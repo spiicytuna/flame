@@ -7,7 +7,7 @@ export interface GetCategories {
 
 export interface GetCategoriesSuccess {
   type: ActionType.getCategoriesSuccess;
-  payload: Category[]; 
+  payload: { categories: Category[]; total: number };
 }
 
 export interface GetCategoriesError {
@@ -63,8 +63,12 @@ export interface ExpandAllCategories {
 export interface FetchHomepageDataSuccess {
   type: ActionType.fetchHomepageDataSuccess;
   payload: {
-    apps: App[];
+    apps: {
+      apps: App[];
+      totalApps: number;
+    };
     categories: Category[];
+    totalBookmarkCategories: number;
   };
 }
 

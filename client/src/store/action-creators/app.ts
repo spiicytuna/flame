@@ -27,7 +27,6 @@ export const getApps =
       });
     } catch (err) {
       console.log(err);
-      // Optional: Dispatch an error action here
     }
   };
 
@@ -86,7 +85,7 @@ export const addApp =
         payload: res.data.data,
       });
 
-      // Sort apps
+      // sort
       dispatch<any>(sortApps());
     } catch (err) {
       console.log(err);
@@ -142,7 +141,7 @@ export const updateApp =
         payload: res.data.data,
       });
 
-      // Sort apps
+      // sort
       dispatch<any>(sortApps());
     } catch (err) {
       console.log(err);
@@ -204,24 +203,28 @@ export const setEditApp =
 
 export const fetchHomepageData = () => async (dispatch: Dispatch) => {
   try {
+    type AppsApiResponse = ApiResponse<{ apps: App[], totalApps: number }>;
+    type CatsApiResponse = ApiResponse<{ categories: Category[], total: number }>;
+
     const [appsRes, appsCatRes, bookmarksCatRes] = await Promise.all([
-      axios.get<ApiResponse<App[]>>('/api/apps', { headers: applyAuth() }),
-      axios.get<ApiResponse<Category[]>>('/api/categories?section=apps', { headers: applyAuth() }),
-      axios.get<ApiResponse<Category[]>>('/api/categories?section=bookmarks', { headers: applyAuth() }),
+      axios.get<AppsApiResponse>('/api/apps', { headers: applyAuth() }),
+      axios.get<CatsApiResponse>('/api/categories?section=apps', { headers: applyAuth() }),
+      axios.get<CatsApiResponse>('/api/categories?section=bookmarks', { headers: applyAuth() }),
     ]);
 
-    // Combine all cats before dispatching
+    // combine cats
     const allCategories = [
-      ...(appsCatRes.data.data ?? []),
-      ...(bookmarksCatRes.data.data ?? [])
+      ...(appsCatRes.data.data.categories ?? []),
+      ...(bookmarksCatRes.data.data.categories ?? [])
     ];
 
-    // ONE action > ALL the data
+    // one action => ALL data
     dispatch({
       type: ActionType.fetchHomepageDataSuccess,
       payload: {
-        apps: appsRes.data.data ?? [],
+        apps: appsRes.data.data,
         categories: allCategories,
+        totalBookmarkCategories: bookmarksCatRes.data.data.total || 0,
       },
     });
 
@@ -229,4 +232,3 @@ export const fetchHomepageData = () => async (dispatch: Dispatch) => {
     console.error("Failed to fetch homepage data", err);
   }
 };
-

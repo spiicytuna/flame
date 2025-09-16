@@ -9,7 +9,7 @@ import {
 } from '../actions/auth';
 import axios, { AxiosError } from 'axios';
 import { getApps } from '.';
-import { getCategoriesForSection } from '../reducers/category';
+import { getCategoriesForSection } from './category';
 
 export const login =
   (formData: { password: string; duration: string }) =>

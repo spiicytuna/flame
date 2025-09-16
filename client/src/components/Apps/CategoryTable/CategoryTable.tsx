@@ -34,7 +34,8 @@ import { Message } from '../../UI';
 import { TableActions } from '../../Actions/TableActions';
 
 // Thunk
-import { getCategoriesForSection } from '../../../store/reducers/category';
+import { getCategoriesForSection } from '../../../store/action-creators/category';
+
 
 // CSS
 import styles from './CategoryTable.module.css';
@@ -108,7 +109,7 @@ export const AppCategoryTable = ({ openFormForUpdating }: Props): JSX.Element =>
     categories: { categories: allCategories },
   } = useSelector((state: State) => state);
 
-  // Create a new list that is filtered for ONLY app categories
+  // filtered list => app cats
   const categories = useMemo(() => (allCategories || [])
     .filter((category) => category.section === 'apps')
     .sort((a, b) => a.orderId - b.orderId), [allCategories]);
@@ -128,12 +129,12 @@ export const AppCategoryTable = ({ openFormForUpdating }: Props): JSX.Element =>
 
   const [localCategories, setLocalCategories] = useState<Category[]>([]);
 
-  // Load only the "apps" section once
+  // load "apps" section once
   useEffect(() => {
     loadSectionCategories('apps');
   }, []);
 
-  // Mirror store → local state
+  // mirror store => local state
   useEffect(() => {
     setLocalCategories(categories);
   }, [categories]);
@@ -165,7 +166,7 @@ export const AppCategoryTable = ({ openFormForUpdating }: Props): JSX.Element =>
     const newIndex = localCategories.findIndex((c) => c.id === over.id);
     const reordered = arrayMove(localCategories, oldIndex, newIndex);
 
-    setLocalCategories(reordered); 
+    setLocalCategories(reordered);
     reorderCategories(reordered);
   };
 

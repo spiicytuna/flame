@@ -37,6 +37,22 @@ function usePrevious<T>(value: T): T | undefined {
   return ref.current;
 }
 
+const LOCAL_APP_COLLAPSE_KEY = 'flame:collapse:apps';
+
+const loadLocalAppCollapse = (): Record<number, boolean> => {
+  try {
+    return JSON.parse(localStorage.getItem(LOCAL_APP_COLLAPSE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+};
+
+const saveLocalAppCollapse = (state: Record<number, boolean>) => {
+  try {
+    localStorage.setItem(LOCAL_APP_COLLAPSE_KEY, JSON.stringify(state));
+  } catch {}
+};
+
 const CollapseToggle = ({
   isHovered,
   config,
@@ -76,7 +92,7 @@ export const Apps = (props: Props): JSX.Element => {
 
   // Local UI state
   const [isAppsLoading, setIsAppsLoading] = useState(false);
-  const [modalIsOpen, setModalIsOpen] = useState(false); // app form
+  const [modalIsOpen, setModalIsOpen] = useState(false);
   const [categoryInEdit, setCategoryInEdit] = useState<Category | null>(null);
   const [categoryModalIsOpen, setCategoryModalIsOpen] = useState(false);
   const [isInCategoryUpdate, setIsInCategoryUpdate] = useState(false);
@@ -85,7 +101,6 @@ export const Apps = (props: Props): JSX.Element => {
   const [didInitCollapse, setDidInitCollapse] = useState(false);
   const [collapseState, setCollapseState] = useState<Record<number, boolean>>({});
   const [hoveredId, setHoveredId] = useState<number | null>(null);
-//  const prevConfig = usePrevious(config);
 
   // only the cats for Apps
   const appCategories = useMemo(
@@ -93,7 +108,7 @@ export const Apps = (props: Props): JSX.Element => {
     [allCategories],
   );
 
-  // apps after we have categories
+  // apps after cats
   useEffect(() => {
     const loadApps = async () => {
       if (!apps.length && appCategories.length > 0) {
@@ -108,13 +123,14 @@ export const Apps = (props: Props): JSX.Element => {
   // collapse state => fetched data
   useEffect(() => {
     if (!didInitCollapse && appCategories.length > 0) {
+      const local = !isAuthenticated ? loadLocalAppCollapse() : {};
       const initialState = Object.fromEntries(
-        appCategories.map((cat) => [cat.id, cat.isCollapsed ?? false]),
+        appCategories.map((cat) => [cat.id, local[cat.id] ?? (cat.isCollapsed ?? false)])
       );
       setCollapseState(initialState);
       setDidInitCollapse(true);
     }
-  }, [appCategories, didInitCollapse]);
+  }, [appCategories, didInitCollapse, isAuthenticated]);
 
   // Reset edit UIs when auth changes
   useEffect(() => {
@@ -132,39 +148,41 @@ export const Apps = (props: Props): JSX.Element => {
   useEffect(() => {
     // trans => showing table => hiding
     if (prevShowCategoryTable && !showCategoryTable) {
-      // ...then refresh the data to get the new category order.
       fetchHomepageData();
     }
   }, [showCategoryTable, prevShowCategoryTable, fetchHomepageData]);
 
-  // refresh after editing apps within a cat
+  // edit app => save => auto-refresh
   useEffect(() => {
-    // If we just transitioned from editing apps in a category to the main view...
     if (prevCategoryInEdit && !categoryInEdit) {
-      // ...then refresh the data to get the new app order.
       fetchHomepageData();
     }
   }, [categoryInEdit, prevCategoryInEdit, fetchHomepageData]);
 
-  // db handler => collapse state
   const toggleCollapsed = async (catId: number) => {
     const newState = !collapseState[catId];
-    setCollapseState((prev) => ({ ...prev, [catId]: newState }));
-
-    try {
-      await fetch(`/api/categories/${catId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...applyAuth(),
-        },
-        body: JSON.stringify({ isCollapsed: newState }),
-      });
-      dispatch(updateCategoryCollapseState(catId, newState));
-    } catch (err) {
-      console.error(`Failed to update category ${catId}:`, err);
+  
+    // Update UI first
+    setCollapseState((prev) => {
+      const next = { ...prev, [catId]: newState };
+      if (!isAuthenticated) saveLocalAppCollapse(next);
+      return next;
+    });
+    dispatch(updateCategoryCollapseState(catId, newState));
+  
+    // authenticated ??
+    if (isAuthenticated) {
+      try {
+        await fetch(`/api/categories/${catId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...applyAuth() },
+          body: JSON.stringify({ isCollapsed: newState }),
+        });
+      } catch (err) {
+        console.error(`Failed to persist category ${catId} collapse state:`, err);
+      }
     }
-  };
+  }; 
 
   // handlers: app form
   const openCreateApp = (): void => {
@@ -309,7 +327,7 @@ export const Apps = (props: Props): JSX.Element => {
                           {!isCollapsed && (
                           <motion.div
                             style={{ overflow: 'hidden' }}
-                            key="app-grid-content" 
+                            key="app-grid-content"
                             initial="hidden"
                             animate="visible"
                             exit="hidden"
@@ -334,7 +352,7 @@ export const Apps = (props: Props): JSX.Element => {
                         className={classes.categoryName}
 		      onClick={() =>
 		        setCategoryInEdit({
-		          id: -1, 
+		          id: -1,
 		          name: 'Uncategorized',
 		          section: 'apps',
 		          isPinned: false,
