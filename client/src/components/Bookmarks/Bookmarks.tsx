@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 
 // Redux
@@ -71,6 +71,16 @@ export const Bookmarks = (props: Props): JSX.Element => {
 
   const prevShowCategoryTable = usePrevious(showCategoryTable);
   const prevSelectedCategory = usePrevious(selectedCategory);
+
+   // cat has books ??
+   const nonEmptyBookmarkCategories = useMemo(
+     () =>
+       (categories || []).filter(
+         ({ section, bookmarks }) =>
+           section === 'bookmarks' && (bookmarks?.length ?? 0) > 0
+       ),
+     [categories]
+   );
 
   // Cleanup hooks
   useEffect(() => {
@@ -204,13 +214,14 @@ export const Bookmarks = (props: Props): JSX.Element => {
           category={selectedCategory}
           onFinishEditing={() => setSelectedCategory(null)}
         />
-      ) : categories.length > 0 ? (
-        // show the grid if not loading AND hv cats
-        <BookmarkGrid
-          categories={categories}
-          searching={props.searching}
-          selectCategoryHandler={selectCategoryHandler}
-        />
+       ) : nonEmptyBookmarkCategories.length > 0 ? (
+         // show the grid if not loading AND hv non-empty cats
+         <BookmarkGrid
+           categories={nonEmptyBookmarkCategories}
+           searching={props.searching}
+           selectCategoryHandler={selectCategoryHandler}
+         />
+      
       ) : (
         // else show empty msg
         <Message>
