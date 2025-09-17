@@ -17,6 +17,7 @@ export interface GeneralForm {
   secondarySearchProvider: string;
   searchSameTab: boolean;
   pinAppsByDefault: boolean;
+  pinAppCategoriesByDefault: boolean;
   pinCategoriesByDefault: boolean;
   useOrdering: string;
   appsSameTab: boolean;

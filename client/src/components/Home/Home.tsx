@@ -73,7 +73,20 @@ export const Home = (): JSX.Element => {
   const publiclyVisiblePinnedBookmarkCategories = useMemo(() => categories.filter(c => c.isPinned && c.isPublic && c.section === 'bookmarks'), [categories]);
 
   const appsToDisplay = isAuthenticated ? apps : publiclyVisibleApps;
-  const appCategories = useMemo(() => (categories || []).filter(c => c.section === 'apps' && (isAuthenticated || c.isPublic)), [categories, isAuthenticated]);
+//  const appCategories = useMemo(() => (categories || []).filter(c => c.section === 'apps' && (isAuthenticated || c.isPublic)), [categories, isAuthenticated]);
+
+  const appCategories = useMemo(
+    () =>
+      (categories || []).filter((c) => {
+        if (c.section !== 'apps') return false;
+        if (isAuthenticated) {
+          return !!c.isPinned;
+        }
+        return !!c.isPinned && !!c.isPublic;
+      }),
+    [categories, isAuthenticated]
+  );
+  
   const populatedAppCategories = useMemo(() => appCategories.filter(cat => appsToDisplay.some(app => app.categoryId === cat.id)), [appCategories, appsToDisplay]);
   const hasUncategorizedApps = useMemo(() => appsToDisplay.some(app => app.categoryId == null), [appsToDisplay]);
   const totalAppGroups = populatedAppCategories.length + (hasUncategorizedApps ? 1 : 0);

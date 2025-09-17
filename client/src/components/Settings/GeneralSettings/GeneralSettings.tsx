@@ -118,6 +118,22 @@ export const GeneralSettings = (): JSX.Element => {
           </select>
         </InputGroup>
 
+        {/* PIN APP CATEGORIES */}
+        <InputGroup>
+          <label htmlFor="pinAppCategoriesByDefault">
+            Pin new Application categories by default
+          </label>
+          <select
+            id="pinAppCategoriesByDefault"
+            name="pinAppCategoriesByDefault"
+            value={formData.pinAppCategoriesByDefault ? 1 : 0}
+            onChange={(e) => inputChangeHandler(e, { isBool: true })}
+          >
+            <option value={1}>True</option>
+            <option value={0}>False</option>
+          </select>
+        </InputGroup>
+
         {/* APPS OPPENING */}
         <InputGroup>
           <label htmlFor="appsSameTab">Open applications in the same tab</label>
@@ -137,7 +153,7 @@ export const GeneralSettings = (): JSX.Element => {
         {/* PIN CATEGORIES */}
         <InputGroup>
           <label htmlFor="pinCategoriesByDefault">
-            Pin new categories by default
+            Pin new Bookmark categories by default
           </label>
           <select
             id="pinCategoriesByDefault"
