@@ -57,9 +57,9 @@ export const TableActions = (props: Props): JSX.Element => {
           tabIndex={0}
         >
           {entity.isPinned ? (
-            <Icon icon="mdiPinOff" color="var(--color-accent)" />
+            <Icon icon="mdiPin" color="var(--color-accent)" />
           ) : (
-            <Icon icon="mdiPin" />
+            <Icon icon="mdiPinOff" />
           )}
         </div>
       )}
