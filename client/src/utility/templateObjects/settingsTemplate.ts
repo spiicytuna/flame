@@ -35,6 +35,7 @@ export const generalSettingsTemplate: GeneralForm = {
   defaultSearchProvider: 'l',
   secondarySearchProvider: 'd',
   pinAppsByDefault: true,
+  pinAppCategoriesByDefault: true,
   pinCategoriesByDefault: true,
   useOrdering: 'createdAt',
   appsSameTab: false,

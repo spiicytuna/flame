@@ -5,6 +5,7 @@
   "isCelsius": true,
   "customTitle": "Flame",
   "pinAppsByDefault": true,
+  "pinAppCategoriesByDefault": true,
   "pinCategoriesByDefault": true,
   "hideHeader": false,
   "useOrdering": "createdAt",

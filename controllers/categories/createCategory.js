@@ -1,5 +1,6 @@
 const Category = require('../../models/Category');
 const Logger = require('../../utils/Logger');
+const loadConfig = require('../../utils/loadConfig');
 const logger = new Logger();
 
 module.exports = async function createCategory(req, res) {
@@ -16,12 +17,31 @@ module.exports = async function createCategory(req, res) {
       return res.status(400).json({ success: false, message: 'Category name is required' });
     }
 
+    const cfg = await loadConfig();
+    const normalizedSection = section === 'apps' ? 'apps' : 'bookmarks';
+    
+    const defaultPinned =
+      normalizedSection === 'apps'
+        ? !!cfg.pinAppCategoriesByDefault
+        : !!cfg.pinCategoriesByDefault;
+    
+    let normalizedPinned;
+    if (isPinned === 0 || isPinned === '0') {
+      normalizedPinned = false;
+    } else if (isPinned === 1 || isPinned === '1') {
+      normalizedPinned = true;
+    } else if (typeof isPinned === 'boolean') {
+      normalizedPinned = isPinned;
+    } else {
+      normalizedPinned = defaultPinned;
+    }
+    
     const payload = {
       name: String(name).trim(),
       // in DB this is INTEGER(0/1); normalize truthy/falsy
       isPublic: (isPublic === 0 || isPublic === '0') ? 0 : 1,
-      isPinned: !!isPinned,
-      section: section === 'apps' ? 'apps' : 'bookmarks',
+      isPinned: normalizedPinned,
+      section: normalizedSection,
       abbreviation: (abbreviation ?? '—').toString().slice(0, 3) || '—',
     };
 

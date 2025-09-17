@@ -7,6 +7,7 @@ export interface Config {
   isCelsius: boolean;
   customTitle: string;
   pinAppsByDefault: boolean;
+  pinAppCategoriesByDefault: boolean;
   pinCategoriesByDefault: boolean;
   hideHeader: boolean;
   useOrdering: string;
