@@ -2,6 +2,24 @@
   display: flex;
   align-items: center;
   visibility: hidden;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 5px;
+  transition: background-color 0.2s;
+}
+
+.WeatherWidget:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* This class correctly disables the widget's interactive styles */
+.WeatherWidgetDisabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.WeatherWidgetDisabled:hover {
+  background-color: transparent; /* Ensures no hover effect when disabled */
 }
 
 .WeatherDetails {

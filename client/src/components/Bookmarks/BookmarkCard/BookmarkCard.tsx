@@ -17,10 +17,17 @@ import { iconParser, isImage, isSvg, isUrl, urlParser } from '../../../utility';
 interface Props {
   category: Category;
   fromHomepage?: boolean;
+  iconSizePx?: number;
 }
 
 export const BookmarkCard = (props: Props): JSX.Element => {
-  const { category, fromHomepage = false } = props;
+  const { category, fromHomepage = false, iconSizePx } = props;
+
+  // default !provided
+  const size =
+    typeof iconSizePx === 'number' && Number.isFinite(iconSizePx)
+      ? Math.max(12, Math.min(64, Math.round(iconSizePx)))
+      : 32;
 
   const {
     config: { config },
@@ -33,9 +40,7 @@ export const BookmarkCard = (props: Props): JSX.Element => {
   return (
     <div className={classes.BookmarkCard}>
       <h3
-        className={
-          fromHomepage || !isAuthenticated ? '' : classes.BookmarkHeader
-        }
+        className={fromHomepage || !isAuthenticated ? '' : classes.BookmarkHeader}
         onClick={() => {
           if (!fromHomepage && isAuthenticated) {
             setEditCategory(category);
@@ -58,11 +63,15 @@ export const BookmarkCard = (props: Props): JSX.Element => {
               const source = isUrl(icon) ? icon : `/uploads/${icon}`;
 
               iconEl = (
-                <div className={classes.BookmarkIcon}>
+                <div
+                  className={classes.BookmarkIcon}
+                  style={{ width: `${size}px`, height: `${size}px` }}
+                >
                   <img
                     src={source}
                     alt={`${name} icon`}
                     className={classes.CustomIcon}
+                    style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                   />
                 </div>
               );
@@ -70,18 +79,29 @@ export const BookmarkCard = (props: Props): JSX.Element => {
               const source = isUrl(icon) ? icon : `/uploads/${icon}`;
 
               iconEl = (
-                <div className={classes.BookmarkIcon}>
+                <div
+                  className={classes.BookmarkIcon}
+                  style={{ width: `${size}px`, height: `${size}px` }}
+                >
                   <svg
                     data-src={source}
                     fill="var(--color-primary)"
                     className={classes.BookmarkIconSvg}
-                  ></svg>
+                    // placeholder
+                    width={size}
+                    height={size}
+                    style={{ width: '100%', height: '100%' }}
+                  />
                 </div>
               );
             } else {
+              // mdiIconName
               iconEl = (
-                <div className={classes.BookmarkIcon}>
-                  <Icon icon={iconParser(icon)} />
+                <div
+                  className={classes.BookmarkIcon}
+                  style={{ width: `${size}px`, height: `${size}px` }}
+                >
+                  <Icon icon={iconParser(icon)} sizePx={size} />
                 </div>
               );
             }

@@ -42,6 +42,10 @@ export const WeatherSettings = (): JSX.Element => {
       showExtraWeatherColumn: config.showExtraWeatherColumn || false,
       extraWeatherTop: config.extraWeatherTop || 'uv',
       extraWeatherBottom: config.extraWeatherBottom || 'gust_mph',
+      forecastEnable: config.forecastEnable || false,
+      forecastDays: config.forecastDays || 5,
+      forecastCache: config.forecastCache || false,
+      weatherWidgetIcon: config.weatherWidgetIcon || 65,
     });
   }, [loading]);
 
@@ -62,7 +66,7 @@ export const WeatherSettings = (): JSX.Element => {
 
     // Update weather
     axios
-      .get<ApiResponse<Weather>>('/api/weather/update')
+      .get<ApiResponse<{ message: string }>>('/api/weather/update')
       .then(() => {
         createNotification({
           title: 'Success',
@@ -140,6 +144,22 @@ export const WeatherSettings = (): JSX.Element => {
         </select>
         <span>
           Use automatic IP-based lookup (default), or force static coordinates.
+        </span>
+      </InputGroup>
+      <InputGroup>
+        <label htmlFor="lat">Homepage widget icon size</label>
+        <input
+          type="number"
+          id="weatherWidgetIcon"
+          name="weatherWidgetIcon"
+          placeholder="65"
+          value={formData.weatherWidgetIcon}
+          onChange={(e) => inputChangeHandler(e, { isNumber: true })}
+          step="any"
+          lang="en-150"
+        />
+        <span>
+          Size constraints: 24 - 160
         </span>
       </InputGroup>
 
@@ -257,6 +277,49 @@ export const WeatherSettings = (): JSX.Element => {
 	  </select>
 	</InputGroup>
 
+    {/* FORECAST SECTION */}
+       <SettingsHeadline text="Forecast" />
+       <InputGroup>
+         <label htmlFor="forecastEnable">Enable weather forecast</label>
+         <select
+           id="forecastEnable"
+           name="forecastEnable"
+           value={formData.forecastEnable ? 1 : 0}
+           onChange={(e) => inputChangeHandler(e, { isBool: true })}
+         >
+           <option value={0}>Disabled</option>
+           <option value={1}>Enabled</option>
+         </select>
+       </InputGroup>
+       <InputGroup>
+         <label htmlFor="forecastDays">Forecast days</label>
+         <select
+           id="forecastDays"
+           name="forecastDays"
+           value={formData.forecastDays}
+           onChange={(e) => inputChangeHandler(e, { isNumber: true })}
+         >
+           {[3, 4, 5, 6, 7, 8, 9, 10].map(day => (
+             <option key={day} value={day}>{day}</option>
+           ))}
+         </select>
+	 <span>
+           ** The free Weather API tier only supports 3 days
+         </span>
+       </InputGroup>
+
+       <InputGroup>
+         <label htmlFor="forecastCache">On click display forecast data from</label>
+         <select
+           id="forecastCache"
+           name="forecastCache"
+           value={formData.forecastCache ? 1 : 0}
+           onChange={(e) => inputChangeHandler(e, { isBool: true })}
+         >
+           <option value={0}>up to date</option>
+           <option value={1}>cached data</option>
+         </select>
+       </InputGroup>
 
       <Button>Save changes</Button>
     </form>

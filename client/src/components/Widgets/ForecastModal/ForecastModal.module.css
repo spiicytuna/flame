@@ -1,0 +1,103 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.modalContent {
+  background-color: var(--color-background);
+  padding: 25px;
+  border-radius: 8px;
+  border: 1px solid var(--color-primary);
+  width: 90%;
+  max-width: 340px; /* size of modal */
+  max-height: 80vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.modalContent h3 {
+  color: var(--color-accent);
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 25px;
+  font-size: 1.7em; /* MODIFIED: Made title text larger */
+}
+
+.closeButton {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.closeButton:hover {
+  opacity: 1;
+}
+
+.forecastGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* text of weather forecast */
+.forecastDay {
+  color: var(--color-primary);
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.forecastDay:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.date {
+  font-weight: 500;
+  font-size: 0.9em;
+  opacity: 0.8;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.weatherInfo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 8px; /* ADDED: Space below the icon/temp row */
+}
+
+.weatherIcon {
+  width: 40px !important;
+  height: 40px !important;
+}
+
+.temp {
+  font-weight: 700;
+  font-size: 1.1em;
+}
+
+.condition {
+  font-size: 0.9em;
+  opacity: 0.9;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

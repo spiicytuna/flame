@@ -21,6 +21,7 @@ export const BookmarkGrid = (props: Props): JSX.Element => {
     searching,
     fromHomepage = false,
   } = props;
+  const iconSizePx = fromHomepage ? 18 : 32;
 
   let bookmarks: JSX.Element;
 
@@ -35,6 +36,7 @@ export const BookmarkGrid = (props: Props): JSX.Element => {
               <BookmarkCard
                 category={category}
                 fromHomepage={fromHomepage}
+                iconSizePx={iconSizePx}
                 key={category.id}
               />
             )

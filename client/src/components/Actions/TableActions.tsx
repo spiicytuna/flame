@@ -15,6 +15,7 @@ interface Props {
   pinHanlder?: (id: number) => void;
   changeVisibilty: (id: number) => void;
   showPin?: boolean;
+  iconSizePx?: number;
 }
 
 export const TableActions = (props: Props): JSX.Element => {
@@ -25,6 +26,7 @@ export const TableActions = (props: Props): JSX.Element => {
     pinHanlder,
     changeVisibilty,
     showPin = true,
+    iconSizePx = 20,
   } = props;
 
   const _pinHandler = pinHanlder || function () {};
@@ -36,8 +38,9 @@ export const TableActions = (props: Props): JSX.Element => {
         className={classes.TableAction}
         onClick={() => deleteHandler(entity.id, entity.name)}
         tabIndex={0}
+        aria-label="Delete"
       >
-        <Icon icon="mdiDelete" />
+        <Icon icon="mdiDelete" sizePx={iconSizePx} />
       </div>
 
       {/* UPDATE */}
@@ -45,8 +48,9 @@ export const TableActions = (props: Props): JSX.Element => {
         className={classes.TableAction}
         onClick={() => updateHandler(entity.id)}
         tabIndex={0}
+        aria-label="Edit"
       >
-        <Icon icon="mdiPencil" />
+        <Icon icon="mdiPencil" sizePx={iconSizePx} />
       </div>
 
       {/* PIN */}
@@ -55,11 +59,12 @@ export const TableActions = (props: Props): JSX.Element => {
           className={classes.TableAction}
           onClick={() => _pinHandler(entity.id)}
           tabIndex={0}
+          aria-label={entity.isPinned ? 'Unpin' : 'Pin'}
         >
           {entity.isPinned ? (
-            <Icon icon="mdiPinOff" color="var(--color-accent)" />
+            <Icon icon="mdiPinOff" color="var(--color-accent)" sizePx={iconSizePx} />
           ) : (
-            <Icon icon="mdiPin" />
+            <Icon icon="mdiPin" sizePx={iconSizePx} />
           )}
         </div>
       )}
@@ -69,11 +74,12 @@ export const TableActions = (props: Props): JSX.Element => {
         className={classes.TableAction}
         onClick={() => changeVisibilty(entity.id)}
         tabIndex={0}
+        aria-label={entity.isPublic ? 'Hide' : 'Show'}
       >
         {entity.isPublic ? (
-          <Icon icon="mdiEyeOff" color="var(--color-accent)" />
+          <Icon icon="mdiEyeOff" color="var(--color-accent)" sizePx={iconSizePx} />
         ) : (
-          <Icon icon="mdiEye" />
+          <Icon icon="mdiEye" sizePx={iconSizePx} />
         )}
       </div>
     </td>

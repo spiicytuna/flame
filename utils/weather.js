@@ -33,69 +33,111 @@ async function getAPIKey() {
   return API_KEY;
 }
 
-async function getWeather(lat, lon) {
-  // caching
-  const key = `${lat},${lon}`;
-  const now = Date.now();
+/**
+ * Fetch from WeatherAPI and cache result.
+ * - Uses cache unless forceFresh === true AND API succeeds.
+ * - On API failure, will serve cached data if available.
+ * @returns {{ data: {current: {...}, forecast: [...]}, source: 'API'|'cache' }}
+ */
+async function fetchAndCacheWeather(lat, lon, forceFresh = false, daysOverride) {
+  if (!lat || !lon) throw new Error('Missing coordinates');
 
-  if (weatherCache[key] && (now - weatherCache[key].timestamp) < WEATHER_TTL) {
-    logger.log(`[Weather] Serving from cache for coordinates ${key}`);
-    return { ...weatherCache[key].data, source: 'cache' };
+  const config = await loadConfig();
+  const daysRaw = typeof daysOverride === 'number' ? daysOverride : (config.forecastDays || 5);
+  // WeatherAPI free plan => max 3 days
+  const days = Math.max(1, Math.min(10, daysRaw));
+
+  const key = `${lat},${lon}|days=${days}`;
+  const now = Date.now();
+  const cached = weatherCache[key];
+
+  // fresh enuf cache
+  if (!forceFresh && cached && now - cached.timestamp < WEATHER_TTL) {
+    return { data: cached.data, source: 'cache' };
   }
 
-  // no key => return null
   const apiKey = await getAPIKey();
-  if (!apiKey) return null;
-
-  const url = `${API_URL}?key=${apiKey}&q=${lat},${lon}&aqi=no`;
+  const url = `${API_URL}?key=${apiKey}&q=${lat},${lon}&days=${days}&aqi=no&alerts=no`;
 
   try {
-    const res = await axios.get(url);
+    const res = await axios.get(url, { timeout: 12_000 });
     const data = res.data;
 
-    if (!data?.current) {
-      throw new Error(data.error?.message || 'Weather fetch failed');
+    if (!data?.current || !data?.forecast?.forecastday) {
+      throw new Error(data?.error?.message || 'Weather/Forecast fetch returned invalid payload');
     }
 
-    const weatherData = {
-      id: 1,
-      externalLastUpdate: data.current.last_updated,
-      tempC: data.current.temp_c,
-      tempF: data.current.temp_f,
-      isDay: data.current.is_day === 1,
-      cloud: data.current.cloud,
-      conditionText: data.current.condition.text,
-      conditionCode: data.current.condition.code,
-      humidity: data.current.humidity,
-      windK: data.current.wind_kph,
-      windM: data.current.wind_mph,
-      location: data.location.name,
-      precip_mm: data.current.precip_mm,
-      precip_in: data.current.precip_in,
-      vis_km: data.current.vis_km,
-      vis_miles: data.current.vis_miles,
-      uv: data.current.uv,
-      gust_kph: data.current.gust_kph,
-      gust_mph: data.current.gust_mph
+    const combinedData = {
+      current: {
+        id: 1,
+        externalLastUpdate: data.current.last_updated,
+        tempC: data.current.temp_c,
+        tempF: data.current.temp_f,
+        isDay: data.current.is_day,
+        cloud: data.current.cloud,
+        conditionText: data.current.condition.text,
+        conditionCode: data.current.condition.code,
+        humidity: data.current.humidity,
+        windK: data.current.wind_kph,
+        windM: data.current.wind_mph,
+        location: data.location?.name,
+        precip_mm: data.current.precip_mm,
+        precip_in: data.current.precip_in,
+        vis_km: data.current.vis_km,
+        vis_miles: data.current.vis_miles,
+        uv: data.current.uv,
+        gust_kph: data.current.gust_kph,
+        gust_mph: data.current.gust_mph,
+      },
+      forecast: data.forecast.forecastday.map((day) => ({
+        date: day.date,
+        tempC: day.day.avgtemp_c,
+        tempF: day.day.avgtemp_f,
+        conditionText: day.day.condition.text,
+        conditionCode: day.day.condition.code,
+	iconUrl: day.day.condition.icon,
+      })),
     };
 
-    // store cache
-    weatherCache[key] = {
-      data: weatherData,
-      timestamp: now
-    };
-    logger.log(`[Weather] Fetched fresh data for coordinates ${key}`);
-
-    return { ...weatherData, source: 'API' };
+    // store in cache
+    weatherCache[key] = { data: combinedData, timestamp: now };
+    logger.log(`[Weather] Fetched and cached fresh data for ${key}`);
+    return { data: combinedData, source: 'API' };
   } catch (err) {
-    const errorMessage = err.response ? err.response.data.error.message : err.message;
-    logger.log(`[${errorMessage}] [Weather] Failed to fetch weather:`, 'ERROR');
-    throw new Error(errorMessage);
+    const message =
+      err?.response?.data?.error?.message || err?.message || 'Weather fetch failed';
+
+    if (cached?.data) {
+      logger.log(`[${message}] [Weather] API failed; serving cached for ${key}`, 'WARN');
+      return { data: cached.data, source: 'cache' };
+    }
+    const prefix = `${lat},${lon}|days=`;
+    const altKey = Object.keys(weatherCache).find(k => k.startsWith(prefix));
+    if (altKey && weatherCache[altKey]?.data) {
+      logger.log(`[${message}] [Weather] API failed; serving alt cached key ${altKey}`, 'WARN');
+      return { data: weatherCache[altKey].data, source: 'cache' };
+    }
+    
+    logger.log(`[${message}] [Weather] Failed to fetch weather (no cache).`, 'ERROR');
+    throw new Error(message);
   }
+}
+
+// cache => cur weather
+async function getWeather(lat, lon) {
+  const { data, source } = await fetchAndCacheWeather(lat, lon);
+  return data ? { ...data.current, source } : null;
+}
+
+// cache => forecast
+async function getForecast(lat, lon, forceFresh, days) {
+  const { data, source } = await fetchAndCacheWeather(lat, lon, !!forceFresh, days);
+  return data ? { data: data.forecast, source } : null;
 }
 
 module.exports = {
   getWeather,
+  getForecast,
   clearWeatherCache,
-  WEATHER_TTL
+  WEATHER_TTL,
 };

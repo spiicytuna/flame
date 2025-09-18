@@ -1,5 +1,6 @@
 const schedule = require('node-schedule');
 const Logger = require('./Logger');
+const { clearWeatherCache } = require('./weather');
 const logger = new Logger();
 
 let hours = parseInt(process.env.WEATHER_CACHE_HOURS || '1', 10);

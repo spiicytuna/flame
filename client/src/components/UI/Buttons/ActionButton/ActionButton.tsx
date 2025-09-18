@@ -9,13 +9,16 @@ interface Props {
   icon: string;
   link?: string;
   handler?: () => void;
+  iconSizePx?: number;
 }
 
 export const ActionButton = (props: Props): JSX.Element => {
+  const sizePx = props.iconSizePx ?? 18;
+
   const body = (
     <Fragment>
       <div className={classes.ActionButtonIcon}>
-        <Icon icon={props.icon} />
+        <Icon icon={props.icon} sizePx={sizePx} />
       </div>
       <div className={classes.ActionButtonName}>{props.name}</div>
     </Fragment>

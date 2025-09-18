@@ -1,4 +1,5 @@
 module.exports = {
-  getWeather: require('./getWather'),
+  getWeather: require('./getWeather'),
+  getForecast: require('./getForecast'),
   updateWeather: require('./updateWeather'),
 };

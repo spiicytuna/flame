@@ -20,3 +20,12 @@ export interface Weather extends Model {
   gust_kph: number;
   gust_mph: number;
 }
+
+export interface ForecastDay {
+  date: string;
+  tempC: number;
+  tempF: number;
+  conditionText: string;
+  conditionCode: number;
+  iconUrl?: string;
+}

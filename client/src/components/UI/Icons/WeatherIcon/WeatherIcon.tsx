@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Skycons } from 'skycons-ts';
 import { State } from '../../../../store/reducers';
@@ -8,26 +8,43 @@ interface Props {
   weatherStatusCode: number;
   isDay: number;
   className?: string;
+  size?: number;
 }
 
-export const WeatherIcon = (props: Props): JSX.Element => {
+export const WeatherIcon = ({ weatherStatusCode, isDay, className, size = 50 }: Props): JSX.Element => {
   const { activeTheme } = useSelector((state: State) => state.theme);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const icon = props.isDay
-    ? new IconMapping().mapIcon(props.weatherStatusCode, TimeOfDay.day)
-    : new IconMapping().mapIcon(props.weatherStatusCode, TimeOfDay.night);
+  const mapping = new IconMapping();
+  const skycon = isDay
+    ? mapping.mapIcon(weatherStatusCode, TimeOfDay.day)
+    : mapping.mapIcon(weatherStatusCode, TimeOfDay.night);
 
   useEffect(() => {
-    const delay = setTimeout(() => {
-      const skycons = new Skycons({ color: activeTheme.colors.accent });
-      skycons.add(`weather-icon`, icon);
-      skycons.play();
-    }, 1);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
+    // HiDPI disp
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    canvas.width = Math.round(size * dpr);     // intrinsic pixels
+    canvas.height = Math.round(size * dpr);
+    canvas.style.width = `${size}px`;          // CSS pixels
+    canvas.style.height = `${size}px`;
+
+    const sky = new Skycons({ color: activeTheme.colors.accent });
+    try {
+      sky.add(canvas, skycon);
+      sky.play();
+    } catch {
+      // skip gracefully
+    }
+
+    // cleanup
     return () => {
-      clearTimeout(delay);
+      try { sky.remove(canvas); } catch { /* ignore */ }
     };
-  }, [props.weatherStatusCode, icon, activeTheme.colors.accent]);
+  }, [weatherStatusCode, skycon, activeTheme.colors.accent, isDay, size]);
 
-  return <canvas id={`weather-icon`} className={props.className || ''} width="50" height="50"></canvas>;
+  // css handle => look+fee;
+  return <canvas ref={canvasRef} className={className ?? ''} />;
 };

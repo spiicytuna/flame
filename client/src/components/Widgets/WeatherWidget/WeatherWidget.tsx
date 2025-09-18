@@ -1,11 +1,10 @@
 import { useState, useEffect, Fragment } from 'react';
-import axios from 'axios';
 
 // Redux
 import { useSelector } from 'react-redux';
 
 // Typescript
-import { Weather, ApiResponse } from '../../../interfaces';
+import { Weather } from '../../../interfaces';
 
 // CSS
 import classes from './WeatherWidget.module.css';
@@ -16,23 +15,30 @@ import { State } from '../../../store/reducers';
 import { weatherTemplate } from '../../../utility/templateObjects/weatherTemplate';
 
 
-export const WeatherWidget = (): JSX.Element => {
-  const { loading: configLoading, config } = useSelector(
-    (state: State) => state.config
-  );
+interface WidgetProps {
+  onClick?: () => void;
+}
+
+export const WeatherWidget = ({ onClick }: WidgetProps): JSX.Element => {
+  const { config } = useSelector((state: State) => state.config);
+
+  // icon size ??
+  const rawIconSize = (config as any)?.weatherWidgetIcon;
+  let iconSize = 65;
+  if (rawIconSize !== undefined && rawIconSize !== null) {
+    const n = Number(rawIconSize);
+    if (Number.isFinite(n) && n > 0) iconSize = Math.round(n);
+  }
+  iconSize = Math.max(24, Math.min(160, iconSize));
 
   const [weather, setWeather] = useState<Weather>(weatherTemplate);
   const [isLoading, setIsLoading] = useState(true);
 
   // socket for updates
   useEffect(() => {
-    // guard the socket connection.
-    if (!config.WEATHER_API_KEY) {
-      return;
-    }
+    if (!config.WEATHER_API_KEY) return;
 
-    const socketProtocol =
-      document.location.protocol === 'http:' ? 'ws:' : 'wss:';
+    const socketProtocol = document.location.protocol === 'http:' ? 'ws:' : 'wss:';
     const socketAddress = `${socketProtocol}//${window.location.host}/socket`;
     const webSocketClient = new WebSocket(socketAddress);
 
@@ -46,31 +52,52 @@ export const WeatherWidget = (): JSX.Element => {
     };
 
     return () => webSocketClient.close();
-  }, [config.WEATHER_API_KEY]); // depends on API key
+  }, [config.WEATHER_API_KEY]);
 
-  function formatWeatherData(type: string, weather: Weather): string {
-  switch (type) {
-    case 'precip_mm':
-      return `p: ${weather.precip_mm}mm`;
-    case 'precip_in':
-      return `p: ${weather.precip_in}in`;
-    case 'vis_km':
-      return `v: ${weather.vis_km}km`;
-    case 'vis_miles':
-      return `v: ${weather.vis_miles}mi`;
-    case 'uv':
-      return `uv: ${weather.uv}`;
-    case 'gust_kph':
-      return `w: ${weather.gust_kph}kph`;
-    case 'gust_mph':
-      return `w: ${weather.gust_mph}mph`;
-    default:
-      return '';
+  function formatWeatherData(type: string, w: Weather): string {
+    switch (type) {
+      case 'precip_mm':
+        return `p: ${w.precip_mm}mm`;
+      case 'precip_in':
+        return `p: ${w.precip_in}in`;
+      case 'vis_km':
+        return `v: ${w.vis_km}km`;
+      case 'vis_miles':
+        return `v: ${w.vis_miles}mi`;
+      case 'uv':
+        return `uv: ${w.uv}`;
+      case 'gust_kph':
+        return `w: ${w.gust_kph}kph`;
+      case 'gust_mph':
+        return `w: ${w.gust_mph}mph`;
+      default:
+        return '';
+    }
   }
-}
+
+  const interactive = typeof onClick === 'function';
 
   return (
-    <div className={classes.WeatherWidget}>
+    <div
+      className={`${classes.WeatherWidget} ${
+        !interactive ? classes.WeatherWidgetDisabled : ''
+      }`}
+      onClick={interactive ? onClick : undefined}
+      onKeyDown={
+        interactive
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
+      aria-disabled={interactive ? undefined : true}
+      role={interactive ? 'button' : undefined}
+      tabIndex={interactive ? 0 : -1}
+      title={interactive ? 'Show forecast' : undefined}
+    >
       {config.WEATHER_API_KEY && !isLoading && weather.id > 0 && (
         <Fragment>
           <div className={classes.WeatherIconBlock}>
@@ -78,6 +105,7 @@ export const WeatherWidget = (): JSX.Element => {
               <WeatherIcon
                 weatherStatusCode={weather.conditionCode}
                 isDay={weather.isDay}
+		size={iconSize}
               />
             </div>
             <div className={classes.WeatherLocation}>

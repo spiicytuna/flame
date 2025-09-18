@@ -15,7 +15,12 @@ import { WeatherWidget } from '../../Widgets/WeatherWidget/WeatherWidget';
 import { getDateTime } from './functions/getDateTime';
 import { greeter } from './functions/greeter';
 
-export const Header = (): JSX.Element => {
+interface HeaderProps {
+  onWidgetClick?: () => void;
+  forecastEnable: boolean;
+}
+
+export const Header = ({ onWidgetClick, forecastEnable }: HeaderProps): JSX.Element => {
   const { hideHeader, hideDate, showTime } = useSelector(
     (state: State) => state.config.config
   );
@@ -33,6 +38,11 @@ export const Header = (): JSX.Element => {
 
     return () => window.clearInterval(dateTimeInterval);
   }, []);
+  
+  const containerClasses = [
+    classes.WeatherClickTarget,
+    forecastEnable ? '' : classes.disabled,
+  ].join(' ');
 
   return (
     <header className={classes.Header}>
@@ -45,7 +55,12 @@ export const Header = (): JSX.Element => {
       {!hideHeader && (
         <span className={classes.HeaderMain}>
           <h1>{greeting}</h1>
-          <WeatherWidget />
+          <div
+            onClick={forecastEnable ? onWidgetClick : undefined}
+            className={containerClasses}
+          >
+            <WeatherWidget />
+          </div>
         </span>
       )}
     </header>

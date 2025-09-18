@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useState, useEffect, Fragment } from 'react';
 import { Link } from 'react-router-dom';
 
@@ -8,13 +9,14 @@ import { bindActionCreators } from 'redux';
 import { actionCreators } from '../../store';
 
 // Typescript
-import { App, Category } from '../../interfaces';
+import { App, Category, ForecastDay, ApiResponse } from '../../interfaces';
 
 // UI
 import { Icon, Container, SectionHeadline, Spinner, Message } from '../UI';
 
 // CSS
 import classes from './Home.module.css';
+import { ForecastModal } from '../Widgets/ForecastModal/ForecastModal';
 
 // Components
 import { AppGrid } from '../Apps/AppGrid/AppGrid';
@@ -33,11 +35,19 @@ export const Home = (): JSX.Element => {
     auth: { isAuthenticated },
   } = useSelector((state: State) => state);
 
+  // once per render
+  const forecastEnabled = config?.forecastEnable !== false;
+
   const dispatch = useDispatch();
-  const { getApps, getCategories } = bindActionCreators(
+  const { getApps, getCategories, createNotification } = bindActionCreators(
     actionCreators,
     dispatch
   );
+
+  // forecast
+  const [isForecastOpen, setIsForecastOpen] = useState(false);
+  const [forecastData, setForecastData] = useState<ForecastDay[] | null>(null);
+  const [isForecastLoading, setIsForecastLoading] = useState(false);
 
   // Local search query
   const [localSearch, setLocalSearch] = useState<null | string>(null);
@@ -59,6 +69,43 @@ export const Home = (): JSX.Element => {
       getCategories();
     }
   }, []);
+
+  // click2forecast
+  const handleWidgetClick = async () => {
+    // Hard stop if disabled
+    if (!forecastEnabled) return;
+
+    if (!config.WEATHER_API_KEY) {
+      createNotification({
+        title: 'Info',
+        message: 'Weather API key is not configured in settings.',
+      });
+      return;
+    }
+
+    setIsForecastOpen(true);
+    setIsForecastLoading(true);
+
+    try {
+      const params = {
+        days: config.forecastDays,
+        useCache: config.forecastCache,
+      };
+      const res = await axios.get<ApiResponse<ForecastDay[]>>(
+        '/api/weather/forecast',
+        { params }
+      );
+      setForecastData(res.data.data);
+    } catch (err: any) {
+      createNotification({
+        title: 'Error',
+        message: err.response?.data?.error || 'Failed to fetch forecast',
+      });
+      setIsForecastOpen(false); // Close modal on error
+    } finally {
+      setIsForecastLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (localSearch) {
@@ -91,6 +138,16 @@ export const Home = (): JSX.Element => {
 
   return (
     <Container>
+      {/* modal => forecast enabled */}
+      {forecastEnabled && isForecastOpen && (
+        <ForecastModal
+          data={forecastData}
+          isLoading={isForecastLoading}
+          onClose={() => setIsForecastOpen(false)}
+	  isCelsius={config.isCelsius}
+        />
+      )}
+
       {!config.hideSearch ? (
         <SearchBar
           setLocalSearch={setLocalSearch}
@@ -101,7 +158,10 @@ export const Home = (): JSX.Element => {
         <div></div>
       )}
 
-      <Header />
+      <Header 
+	onWidgetClick={forecastEnabled ? handleWidgetClick : undefined} 
+	forecastEnable={config.forecastEnable}
+      />
 
       {!isAuthenticated &&
       !apps.some((a) => a.isPinned) &&
