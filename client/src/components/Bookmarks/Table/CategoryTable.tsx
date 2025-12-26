@@ -65,7 +65,10 @@ const SortableCategoryRow = ({
   };
 
   return (
-    <tr ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <tr ref={setNodeRef} style={style} {...attributes}>
+      <td style={{ width: '50px', cursor: 'grab' }} {...listeners}>
+        ⋮⋮
+      </td>
       <td style={{ width: '300px' }}>{category.name}</td>
       <td style={{ width: '300px' }}>
         {category.isPublic ? 'Visible' : 'Hidden'}
@@ -167,12 +170,12 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
     <Fragment>
       <Message isPrimary={false}>
         {config.useOrdering === 'orderId' ? (
-          <p>You can drag and drop single rows to reorder categories</p>
+          <>You can drag and drop single rows to reorder categories</>
         ) : (
-          <p>
+          <>
             Custom order is disabled. You can change it in the{' '}
             <Link to="/settings/general">settings</Link>
-          </p>
+          </>
         )}
       </Message>
 
@@ -181,7 +184,7 @@ export const CategoryTable = ({ openFormForUpdating }: Props): JSX.Element => {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <Table headers={['Name', 'Visibility', 'Actions']}>
+        <Table headers={['', 'Name', 'Visibility', 'Actions']}>
           <SortableContext
             items={localCategories.map((c) => c.id)}
             strategy={verticalListSortingStrategy}

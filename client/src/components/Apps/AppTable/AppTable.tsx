@@ -67,7 +67,10 @@ const SortableAppRow = ({
   };
 
   return (
-    <tr ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <tr ref={setNodeRef} style={style} {...attributes}>
+      <td style={{ width: '50px', cursor: 'grab' }} {...listeners}>
+        ⋮⋮
+      </td>
       <td style={{ width: '200px' }}>{app.name}</td>
       <td style={{ width: '200px' }}>{app.url}</td>
       <td style={{ width: '200px' }}>{app.icon}</td>
@@ -167,12 +170,12 @@ export const AppTable = (props: Props): JSX.Element => {
     <Fragment>
       <Message isPrimary={false}>
         {config.useOrdering === 'orderId' ? (
-          <p>You can drag and drop single rows to reorder application</p>
+          <>You can drag and drop single rows to reorder application</>
         ) : (
-          <p>
+          <>
             Custom order is disabled. You can change it in the{' '}
             <Link to="/settings/general">settings</Link>
-          </p>
+          </>
         )}
       </Message>
 
@@ -181,7 +184,7 @@ export const AppTable = (props: Props): JSX.Element => {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <Table headers={['Name', 'URL', 'Icon', 'Visibility', 'Actions']}>
+        <Table headers={['', 'Name', 'URL', 'Icon', 'Visibility', 'Actions']}>
           <SortableContext
             items={localApps.map((a) => a.id)}
             strategy={verticalListSortingStrategy}

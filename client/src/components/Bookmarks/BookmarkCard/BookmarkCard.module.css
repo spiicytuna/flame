@@ -38,6 +38,7 @@
   margin-right: 2px;
   justify-content: center;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .BookmarkIconSvg {

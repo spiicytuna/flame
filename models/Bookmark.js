@@ -30,6 +30,11 @@ const Bookmark = sequelize.define(
       allowNull: true,
       defaultValue: null,
     },
+    invertIcon: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     tableName: 'bookmarks',

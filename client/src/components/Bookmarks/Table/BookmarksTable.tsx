@@ -66,7 +66,10 @@ const SortableBookmarkRow = ({
   };
 
   return (
-    <tr ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <tr ref={setNodeRef} style={style} {...attributes}>
+      <td style={{ width: '50px', cursor: 'grab' }} {...listeners}>
+        ⋮⋮
+      </td>
       <td style={{ width: '200px' }}>{bookmark.name}</td>
       <td style={{ width: '200px' }}>{bookmark.url}</td>
       <td style={{ width: '200px' }}>{bookmark.icon}</td>
@@ -200,6 +203,7 @@ export const BookmarksTable = ({ openFormForUpdating }: Props): JSX.Element => {
         >
           <Table
             headers={[
+              '',
               'Name',
               'URL',
               'Icon',

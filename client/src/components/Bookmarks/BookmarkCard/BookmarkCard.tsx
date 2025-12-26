@@ -12,7 +12,7 @@ import { Bookmark, Category } from '../../../interfaces';
 // Other
 import classes from './BookmarkCard.module.css';
 import { Icon } from '../../UI';
-import { iconParser, isImage, isSvg, isUrl, urlParser } from '../../../utility';
+import { iconParser, isImage, isSvg, isUrl, urlParser, getFaviconUrl } from '../../../utility';
 
 interface Props {
   category: Category;
@@ -50,41 +50,63 @@ export const BookmarkCard = (props: Props): JSX.Element => {
           const redirectUrl = urlParser(bookmark.url)[1];
 
           let iconEl: JSX.Element = <Fragment></Fragment>;
+          const { icon, name } = bookmark;
+          const hasIcon = icon && icon.trim().length > 0;
 
-          if (bookmark.icon) {
-            const { icon, name } = bookmark;
+          if (hasIcon && isImage(icon)) {
+            const source = isUrl(icon) ? icon : `/uploads/${icon}`;
 
-            if (isImage(icon)) {
-              const source = isUrl(icon) ? icon : `/uploads/${icon}`;
+            iconEl = (
+              <div
+                className={classes.BookmarkIcon}
+                style={bookmark.invertIcon ? { filter: 'invert(1)' } : {}}
+              >
+                <img
+                  src={source}
+                  alt={`${name} icon`}
+                  className={classes.CustomIcon}
+                />
+              </div>
+            );
+          } else if (hasIcon && isSvg(icon)) {
+            const source = isUrl(icon) ? icon : `/uploads/${icon}`;
 
-              iconEl = (
-                <div className={classes.BookmarkIcon}>
-                  <img
-                    src={source}
-                    alt={`${name} icon`}
-                    className={classes.CustomIcon}
-                  />
-                </div>
-              );
-            } else if (isSvg(icon)) {
-              const source = isUrl(icon) ? icon : `/uploads/${icon}`;
-
-              iconEl = (
-                <div className={classes.BookmarkIcon}>
-                  <svg
-                    data-src={source}
-                    fill="var(--color-primary)"
-                    className={classes.BookmarkIconSvg}
-                  ></svg>
-                </div>
-              );
-            } else {
-              iconEl = (
-                <div className={classes.BookmarkIcon}>
-                  <Icon icon={iconParser(icon)} />
-                </div>
-              );
-            }
+            iconEl = (
+              <div
+                className={classes.BookmarkIcon}
+                style={bookmark.invertIcon ? { filter: 'invert(1)' } : {}}
+              >
+                <svg
+                  data-src={source}
+                  fill="var(--color-primary)"
+                  className={classes.BookmarkIconSvg}
+                ></svg>
+              </div>
+            );
+          } else if (hasIcon) {
+            iconEl = (
+              <div
+                className={classes.BookmarkIcon}
+                style={bookmark.invertIcon ? { filter: 'invert(1)' } : {}}
+              >
+                <Icon icon={iconParser(icon)} />
+              </div>
+            );
+          } else {
+            // No icon set - use favicon from the bookmark's URL
+            const faviconUrl = getFaviconUrl(bookmark.url);
+            iconEl = (
+              <div
+                className={classes.BookmarkIcon}
+                style={bookmark.invertIcon ? { filter: 'invert(1)' } : {}}
+              >
+                <img
+                  src={faviconUrl}
+                  alt={`${bookmark.name} icon`}
+                  className={classes.CustomIcon}
+                />
+              </div>
+            );
           }
 
           return (
@@ -94,7 +116,7 @@ export const BookmarkCard = (props: Props): JSX.Element => {
               rel="noreferrer"
               key={`bookmark-${bookmark.id}`}
             >
-              {bookmark.icon && iconEl}
+              {iconEl}
               {bookmark.name}
             </a>
           );

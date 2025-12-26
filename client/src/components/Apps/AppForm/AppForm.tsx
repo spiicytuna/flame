@@ -56,7 +56,7 @@ export const AppForm = ({ modalHandler }: Props): JSX.Element => {
   const formSubmitHandler = (e: SyntheticEvent<HTMLFormElement>): void => {
     e.preventDefault();
 
-    for (let field of ['name', 'url', 'icon'] as const) {
+    for (let field of ['name', 'url'] as const) {
       if (/^ +$/.test(formData[field])) {
         createNotification({
           title: 'Error',
@@ -78,6 +78,7 @@ export const AppForm = ({ modalHandler }: Props): JSX.Element => {
       data.append('description', formData.description);
       data.append('url', formData.url);
       data.append('isPublic', `${formData.isPublic ? 1 : 0}`);
+      data.append('invertIcon', `${formData.invertIcon ? 1 : 0}`);
 
       return data;
     };
@@ -153,18 +154,17 @@ export const AppForm = ({ modalHandler }: Props): JSX.Element => {
       {!useCustomIcon ? (
         // use mdi icon
         <InputGroup>
-          <label htmlFor="icon">App icon</label>
+          <label htmlFor="icon">App icon (optional)</label>
           <input
             type="text"
             name="icon"
             id="icon"
             placeholder="book-open-outline"
-            required
             value={formData.icon}
             onChange={(e) => inputChangeHandler(e)}
           />
           <span>
-            Use icon name from MDI or pass a valid URL.
+            Optional - If not set, the website's favicon will be used automatically. Use icon name from MDI or pass a valid URL.
             <a href="https://pictogrammers.com/library/mdi/" target="blank">
               {' '}
               Click here for reference
@@ -180,14 +180,13 @@ export const AppForm = ({ modalHandler }: Props): JSX.Element => {
       ) : (
         // upload custom icon
         <InputGroup>
-          <label htmlFor="icon">App Icon</label>
+          <label htmlFor="icon">App Icon (optional)</label>
           <input
             type="file"
             name="icon"
             id="icon"
-            required
             onChange={(e) => fileChangeHandler(e)}
-            accept=".jpg,.jpeg,.png,.svg,.ico"
+            accept=".jpg,.jpeg,.png,.svg,.ico,.webp"
           />
           <span
             onClick={() => {
@@ -213,6 +212,20 @@ export const AppForm = ({ modalHandler }: Props): JSX.Element => {
           <option value={1}>Visible (anyone can access it)</option>
           <option value={0}>Hidden (authentication required)</option>
         </select>
+      </InputGroup>
+
+      {/* INVERT ICON */}
+      <InputGroup>
+        <label htmlFor="invertIcon">
+          <input
+            type="checkbox"
+            id="invertIcon"
+            name="invertIcon"
+            checked={formData.invertIcon || false}
+            onChange={(e) => setFormData({ ...formData, invertIcon: e.target.checked })}
+          />
+          {' '}Invert icon colors (for dark icons on dark backgrounds)
+        </label>
       </InputGroup>
 
       {!appInUpdate ? (

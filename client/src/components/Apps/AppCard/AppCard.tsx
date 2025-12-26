@@ -1,6 +1,6 @@
 import classes from './AppCard.module.css';
 import { Icon } from '../../UI';
-import { iconParser, isImage, isSvg, isUrl, urlParser } from '../../../utility';
+import { iconParser, isImage, isSvg, isUrl, urlParser, getFaviconUrl } from '../../../utility';
 
 import { App } from '../../../interfaces';
 import { useSelector } from 'react-redux';
@@ -17,8 +17,9 @@ export const AppCard = ({ app }: Props): JSX.Element => {
 
   let iconEl: JSX.Element;
   const { icon } = app;
+  const hasIcon = icon && icon.trim().length > 0;
 
-  if (isImage(icon)) {
+  if (hasIcon && isImage(icon)) {
     const source = isUrl(icon) ? icon : `/uploads/${icon}`;
 
     iconEl = (
@@ -28,7 +29,7 @@ export const AppCard = ({ app }: Props): JSX.Element => {
         className={classes.CustomIcon}
       />
     );
-  } else if (isSvg(icon)) {
+  } else if (hasIcon && isSvg(icon)) {
     const source = isUrl(icon) ? icon : `/uploads/${icon}`;
 
     iconEl = (
@@ -40,8 +41,18 @@ export const AppCard = ({ app }: Props): JSX.Element => {
         ></svg>
       </div>
     );
-  } else {
+  } else if (hasIcon) {
     iconEl = <Icon icon={iconParser(icon)} />;
+  } else {
+    // No icon set - use favicon from the app's URL
+    const faviconUrl = getFaviconUrl(app.url);
+    iconEl = (
+      <img
+        src={faviconUrl}
+        alt={`${app.name} icon`}
+        className={classes.CustomIcon}
+      />
+    );
   }
 
   return (
@@ -51,7 +62,12 @@ export const AppCard = ({ app }: Props): JSX.Element => {
       rel="noreferrer"
       className={classes.AppCard}
     >
-      <div className={classes.AppCardIcon}>{iconEl}</div>
+      <div
+        className={classes.AppCardIcon}
+        style={app.invertIcon ? { filter: 'invert(1)' } : {}}
+      >
+        {iconEl}
+      </div>
       <div className={classes.AppCardDetails}>
         <h5>{app.name}</h5>
         <span>{!app.description.length ? displayUrl : app.description}</span>

@@ -10,6 +10,7 @@ export default defineConfig({
     // Proxy API requests to the backend server
     proxy: {
       '/api': 'http://localhost:5005',
+      '/uploads': 'http://localhost:5005',
     },
   },
 });

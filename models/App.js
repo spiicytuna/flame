@@ -36,6 +36,11 @@ const App = sequelize.define(
       allowNull: false,
       defaultValue: '',
     },
+    invertIcon: {
+      type: DataTypes.BOOLEAN,
+      allowNull: false,
+      defaultValue: false,
+    },
   },
   {
     tableName: 'apps',

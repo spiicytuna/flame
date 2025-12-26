@@ -13,7 +13,7 @@ export const isUrl = (data: string): boolean => {
 };
 
 export const isImage = (data: string): boolean => {
-  const regex = /.(jpeg|jpg|png|ico)$/i;
+  const regex = /.(jpeg|jpg|png|ico|webp)$/i;
 
   return regex.test(data);
 };

@@ -14,7 +14,7 @@ const storage = multer.diskStorage({
   },
 });
 
-const supportedTypes = ['jpg', 'jpeg', 'png', 'svg', 'svg+xml', 'x-icon'];
+const supportedTypes = ['jpg', 'jpeg', 'png', 'svg', 'svg+xml', 'x-icon', 'webp'];
 
 const fileFilter = (req, file, cb) => {
   if (supportedTypes.includes(file.mimetype.split('/')[1])) {

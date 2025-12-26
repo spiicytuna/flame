@@ -69,7 +69,7 @@ export const BookmarksForm = ({
   const formSubmitHandler = (e: FormEvent): void => {
     e.preventDefault();
 
-    for (let field of ['name', 'url', 'icon'] as const) {
+    for (let field of ['name', 'url'] as const) {
       if (/^ +$/.test(formData[field])) {
         createNotification({
           title: 'Error',
@@ -89,6 +89,7 @@ export const BookmarksForm = ({
       data.append('url', formData.url);
       data.append('categoryId', `${formData.categoryId}`);
       data.append('isPublic', `${formData.isPublic ? 1 : 0}`);
+      data.append('invertIcon', `${formData.invertIcon ? 1 : 0}`);
 
       return data;
     };
@@ -219,7 +220,7 @@ export const BookmarksForm = ({
             onChange={(e) => inputChangeHandler(e)}
           />
           <span>
-            Use icon name from MDI or pass a valid URL.
+            Optional - If not set, the website's favicon will be used automatically. Use icon name from MDI or pass a valid URL.
             <a href="https://materialdesignicons.com/" target="blank">
               {' '}
               Click here for reference
@@ -241,7 +242,7 @@ export const BookmarksForm = ({
             name="icon"
             id="icon"
             onChange={(e) => fileChangeHandler(e)}
-            accept=".jpg,.jpeg,.png,.svg,.ico"
+            accept=".jpg,.jpeg,.png,.svg,.ico,.webp"
           />
           <span
             onClick={() => {
@@ -267,6 +268,20 @@ export const BookmarksForm = ({
           <option value={1}>Visible (anyone can access it)</option>
           <option value={0}>Hidden (authentication required)</option>
         </select>
+      </InputGroup>
+
+      {/* INVERT ICON */}
+      <InputGroup>
+        <label htmlFor="invertIcon">
+          <input
+            type="checkbox"
+            id="invertIcon"
+            name="invertIcon"
+            checked={formData.invertIcon || false}
+            onChange={(e) => setFormData({ ...formData, invertIcon: e.target.checked })}
+          />
+          {' '}Invert icon colors (for dark icons on dark backgrounds)
+        </label>
       </InputGroup>
 
       <Button>{bookmark ? 'Update bookmark' : 'Add new bookmark'}</Button>
